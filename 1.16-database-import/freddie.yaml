@@ -1,0 +1,81 @@
+# The resource values in this file are deliberately small
+# so that they can be used in local machines for experimentation.
+# It is very unlikely that a Postgres production environment will
+# efficiently run with this small amount of resources.
+#
+# This YAML file shows the database import capability using
+# the microservice method.
+#
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: freddie
+spec:
+  # One primary and two standby servers
+  instances: 3
+  # Sets Postgres shared buffers to 256MB
+  postgresql:
+    parameters:
+      shared_buffers: "256MB"
+
+  # Sets the resources for Guaranteed QoS
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: 2
+    limits:
+      memory: "1Gi"
+      cpu: 2
+
+  # Sets the 1GB storage for PGDATA
+  # This volume will also be used by the import
+  # process to temporarily store the custom format
+  # dump coming from the source database
+  storage:
+    size: 1Gi
+
+  # Initializes the cluster from scratch (initdb bootstrap)
+  bootstrap:
+    initdb:
+      # Enables data checksums
+      dataChecksums: true
+      # Sets WAL segment size to 32MB
+      walSegmentSize: 32
+      # Defines the import strategy, using the microservice
+      # method to import a single database, called freddie,
+      # from the source external cluster called cluster-pg10 
+      import:
+        type: microservice
+        databases:
+          - freddie
+        source:
+          externalCluster: cluster-pg10
+
+  # Defines the cluster-pg10 external cluster
+  # by providing information on how to connect to the Postgres
+  # instance, including user and password (contained in a
+  # separate secret that you need to create).
+  externalClusters:
+    - name: cluster-pg10
+      connectionParameters:
+        # TODO: Properly configure host, user, dbname
+        host: pg10.local
+        user: postgres
+        dbname: postgres
+      password:
+        name: cluster-pg10-superuser
+        key: password
+---
+# Secret that contains the password to connect to the
+# origin instance using the below user
+# TODO: properly set username and password below
+apiVersion: v1
+stringData:
+  username: postgres
+  password: MYPASSWORD
+kind: Secret
+metadata:
+  name: cluster-pg10-superuser
+type: kubernetes.io/basic-auth
+---
+
