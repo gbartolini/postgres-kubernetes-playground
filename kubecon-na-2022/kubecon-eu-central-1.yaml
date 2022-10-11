@@ -1,0 +1,116 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: kubecon-eu-central-1
+spec:
+  imageName: ghcr.io/cloudnative-pg/postgresql:15
+
+  # One primary and two replicas (one at least synchronous)
+  instances: 3
+  minSyncReplicas: 1
+  maxSyncReplicas: 1
+
+  # If possible, spread instances across different availability zones
+  affinity:
+    topologyKey: topology.kubernetes.io/zone
+
+  # Request Guaranteed QoS
+  resources:
+    requests:
+      memory: '12Gi'
+      cpu: 1.5
+    limits:
+      memory: '12Gi'
+      cpu: 1.5
+
+  startDelay: 60
+  stopDelay: 60
+  switchoverDelay: 300
+
+  # Volume with PGDATA
+  storage:
+    storageClass: gp2
+    size: 50Gi
+
+  # Volume for WALs
+  walStorage:
+    storageClass: gp2
+    size: 10Gi
+
+  # Cluster initialization
+  bootstrap:
+    initdb:
+      dataChecksums: true
+      walSegmentSize: 32
+      postInitSQL:
+        - CREATE DATABASE pgbench OWNER app
+
+  # Enable replication slots for HA
+  replicationSlots:
+    highAvailability:
+      enabled: true
+
+  # Backup configuration
+  backup:
+    barmanObjectStore:
+      destinationPath: s3://kubecon-eu-central-1/
+      s3Credentials:
+        inheritFromIAMRole: true
+      data:
+        compression: gzip
+        jobs: 2
+        immediateCheckpoint: true
+      wal:
+        compression: gzip
+        maxParallel: 2
+    retentionPolicy: '7d'
+
+  # PostgreSQL configuration
+  postgresql:
+    parameters:
+      # Connections
+      max_connections: '50'
+
+      # Memory configuration
+      shared_buffers: '3GB'
+      maintenance_work_mem: '1GB'
+      shared_memory_type: 'sysv'
+      dynamic_shared_memory_type: 'sysv'
+
+      # Checkpoint management
+      min_wal_size: '1GB'
+      max_wal_size: '5GB'
+      checkpoint_timeout: '900s'
+      checkpoint_completion_target: '0.9'
+
+      # Log configuration
+      log_checkpoints: 'on'
+      log_lock_waits: 'on'
+      log_min_duration_statement: '1000'
+      log_statement: 'ddl'
+      log_temp_files: '1024'
+      log_autovacuum_min_duration: '1s'
+      
+      # Enable pg_stat_statements
+      pg_stat_statements.max: '10000'
+      pg_stat_statements.track: 'all'
+
+      # JIT
+      jit: 'off'
+
+      # Replication
+      hot_standby_feedback: 'on'
+      max_slot_wal_keep_size: '8GB'
+
+# Comment the following if you are not using backups
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: kubecon-eu-central-1-backup
+spec:
+  schedule: '0 0 0 * * *'
+  backupOwnerReference: self
+  cluster:
+    name: kubecon-eu-central-1
+  immediate: true
