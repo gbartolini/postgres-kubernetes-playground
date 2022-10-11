@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pgbench-init
+spec:
+  template:
+    spec:
+      nodeSelector:
+        workload: pgbench
+      restartPolicy: Never
+      containers:
+      - name: pgbench
+        image: ghcr.io/cloudnative-pg/postgresql:15
+        env:
+        - name: PGHOST
+          value: kubecon-eu-central-1-rw
+        - name: PGDATABASE
+          value: pgbench
+        - name: PGPORT
+          value: '5432'
+        - name: PGUSER
+          valueFrom:
+            secretKeyRef:
+              name: kubecon-eu-central-1-app
+              key: username
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: kubecon-eu-central-1-app
+              key: password
+        command:
+        - pgbench
+        args:
+        - --initialize
+        - --scale
+        - '1000'
