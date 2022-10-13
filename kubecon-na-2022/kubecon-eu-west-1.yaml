@@ -1,7 +1,7 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-  name: kubecon-eu-central-1
+  name: kubecon-eu-west-1
 spec:
   imageName: ghcr.io/cloudnative-pg/postgresql:15
 
@@ -41,11 +41,11 @@ spec:
 
   # Cluster initialization
   bootstrap:
-    initdb:
-      dataChecksums: true
-      walSegmentSize: 64
-      postInitSQL:
-        - CREATE DATABASE pgbench OWNER app
+    recovery:
+      source: kubecon-eu-central-1
+  replica:
+    enabled: true
+    source: kubecon-eu-central-1
 
   # Enable replication slots for HA
   replicationSlots:
@@ -87,25 +87,12 @@ spec:
       hot_standby_feedback: 'on'
       #max_slot_wal_keep_size: '8GB' # Not yet supported
 
-  externalClusters:
-    - name: kubecon-eu-west-1
-      barmanObjectStore:
-        destinationPath: s3://kubecon-eu-west-1/
-        s3Credentials:
-          inheritFromIAMRole: true
-        data:
-          compression: gzip
-          jobs: 2
-        wal:
-          compression: gzip
-          maxParallel: 2
-
 # Comment the following if you are not using backups
 
   # Backup configuration
   backup:
     barmanObjectStore:
-      destinationPath: s3://kubecon-eu-central-1/
+      destinationPath: s3://kubecon-eu-west-1/
       s3Credentials:
         inheritFromIAMRole: true
       data:
@@ -117,14 +104,26 @@ spec:
         maxParallel: 2
     retentionPolicy: '7d'
 
+  externalClusters:
+    - name: kubecon-eu-central-1
+      barmanObjectStore:
+        destinationPath: s3://kubecon-eu-central-1/
+        s3Credentials:
+          inheritFromIAMRole: true
+        data:
+          compression: gzip
+          jobs: 2
+        wal:
+          compression: gzip
+          maxParallel: 2
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
-  name: kubecon-eu-central-1-backup
+  name: kubecon-eu-west-1-backup
 spec:
   schedule: '0 0 0 * * *'
   backupOwnerReference: self
   cluster:
-    name: kubecon-eu-central-1
+    name: kubecon-eu-west-1
   immediate: true
