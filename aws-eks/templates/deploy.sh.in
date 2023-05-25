@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+#
+# Script to deploy two EKS clusters for CloudNativePG demonstration
+# purposes.
+
+# Create the S3 Bucket in the @@CLUSTER_PRIMARY_REGION@@ region
+aws s3api create-bucket \
+  --bucket @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@ \
+  --region @@CLUSTER_PRIMARY_REGION@@ \
+  --create-bucket-configuration \
+  --no-cli-pager \
+  LocationConstraint=@@CLUSTER_PRIMARY_REGION@@
+
+aws s3api put-public-access-block \
+    --bucket @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@ \
+    --public-access-block-configuration "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
+
+# Create the S3 Bucket in the @@CLUSTER_SECONDARY_REGION@@ region
+aws s3api create-bucket \
+  --bucket @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@ \
+  --region @@CLUSTER_SECONDARY_REGION@@ \
+  --create-bucket-configuration \
+  --no-cli-pager \
+  LocationConstraint=@@CLUSTER_SECONDARY_REGION@@
+
+aws s3api put-public-access-block \
+    --bucket @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@ \
+    --public-access-block-configuration "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
+
+# Create the EKS cluster in the @@CLUSTER_PRIMARY_REGION@@ region
+eksctl create cluster -f @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@.yaml
+# Create the EKS cluster in the @@CLUSTER_SECONDARY_REGION@@ region
+eksctl create cluster -f @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@.yaml

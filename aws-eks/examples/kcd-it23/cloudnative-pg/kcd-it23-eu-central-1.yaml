@@ -1,0 +1,145 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: kcd-it23-eu-central-1
+spec:
+  imageName: ghcr.io/cloudnative-pg/postgresql:15
+
+  # Disable remote access as `postgres` superuser
+  enableSuperuserAccess: false
+
+  # One primary and two replicas (one at least synchronous)
+  instances: 3
+  minSyncReplicas: 1
+  maxSyncReplicas: 1
+
+  # Require different zones and different nodes with label "workload=postgres"
+  topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: DoNotSchedule
+    labelSelector:
+      matchLabels:
+        cnpg.io/cluster: kcd-it23-eu-central-1
+  affinity:
+    nodeSelector:
+      workload: postgres
+
+  # Request Guaranteed QoS
+  resources:
+    requests:
+      memory: '14Gi'
+      cpu: 1.5
+    limits:
+      memory: '14Gi'
+      cpu: 1.5
+
+  startDelay: 300
+  stopDelay: 300
+  switchoverDelay: 600
+
+  # Volume with PGDATA
+  storage:
+    storageClass: gp2
+    size: 50Gi
+
+  # Volume for WALs
+  walStorage:
+    storageClass: gp2
+    size: 10Gi
+
+  # Cluster initialization
+  bootstrap:
+    initdb:
+      dataChecksums: true
+      walSegmentSize: 64
+      postInitSQL:
+        - CREATE DATABASE pgbench OWNER app
+
+  # Enable replication slots for HA
+  replicationSlots:
+    highAvailability:
+      enabled: true
+
+  # PostgreSQL configuration
+  postgresql:
+    parameters:
+      # Connections
+      max_connections: '100'
+
+      # Memory configuration
+      shared_buffers: '4GB'
+      maintenance_work_mem: '1GB'
+      effective_cache_size: '15GB'
+      shared_memory_type: 'sysv'
+      dynamic_shared_memory_type: 'sysv'
+
+      # Checkpoint management
+      min_wal_size: '1GB'
+      max_wal_size: '5GB'
+      checkpoint_timeout: '900s'
+      checkpoint_completion_target: '0.9'
+
+      # Log configuration
+      log_checkpoints: 'on'
+      log_lock_waits: 'on'
+      log_min_duration_statement: '1000'
+      log_statement: 'ddl'
+      log_temp_files: '1024'
+      log_autovacuum_min_duration: '1s'
+
+      # Enable pg_stat_statements
+      pg_stat_statements.max: '10000'
+      pg_stat_statements.track: 'all'
+
+      # Replication
+      hot_standby_feedback: 'on'
+      max_slot_wal_keep_size: '8GB'
+
+  monitoring:
+    enablePodMonitor: true
+
+  externalClusters:
+    - name: kcd-it23-eu-west-1
+      barmanObjectStore:
+        destinationPath: s3://kcd-it23-eu-west-1/
+        s3Credentials:
+          inheritFromIAMRole: true
+        data:
+          compression: gzip
+          jobs: 2
+        wal:
+          compression: gzip
+          maxParallel: 2
+
+  serviceAccountTemplate:
+    metadata:
+      annotations:
+        eks.amazonaws.com/role-arn: # Replace this with the result of `eksctl --region eu-central-1 --cluster kcd-it23-eu-central-1 get iamserviceaccount kcd-it23-eu-central-1 -o json | jq '.[0].status.roleARN'`
+
+  # Backup configuration
+  backup:
+    barmanObjectStore:
+      destinationPath: s3://kcd-it23-eu-central-1/
+      s3Credentials:
+        inheritFromIAMRole: true
+      data:
+        compression: gzip
+        jobs: 2
+        immediateCheckpoint: true
+      wal:
+        compression: gzip
+        maxParallel: 2
+    retentionPolicy: '7d'
+
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: kcd-it23-eu-central-1-backup
+spec:
+  schedule: '0 0 0 * * *'
+  backupOwnerReference: self
+  cluster:
+    name: kcd-it23-eu-central-1
+  immediate: true

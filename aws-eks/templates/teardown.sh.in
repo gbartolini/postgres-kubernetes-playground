@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+#
+# Script to remove the two EKS clusters that had been
+# previously set up for CloudNativePG demonstration purposes.
+
+# Delete the primary S3 bucket
+aws s3api delete-bucket --bucket @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@ --region @@CLUSTER_PRIMARY_REGION@@
+
+# Delete the secondary S3 bucket
+aws s3api delete-bucket --bucket @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@ --region @@CLUSTER_SECONDARY_REGION@@
+
+# Delete the primary cluster
+eksctl delete cluster -f @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@.yaml --disable-nodegroup-eviction --force
+
+# Delete the secondary cluster
+eksctl delete cluster -f @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@.yaml --disable-nodegroup-eviction --force
