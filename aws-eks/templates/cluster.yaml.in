@@ -42,7 +42,7 @@ iam:
 
 managedNodeGroups:
   - name: az1
-    instanceType: r5.large
+    instanceType: @@CLUSTER_DB_SIZE@@
     availabilityZones: ["@@CLUSTER_PRIMARY_REGION@@a"]
     labels:
       workload: postgres
@@ -51,7 +51,7 @@ managedNodeGroups:
       withAddonPolicies:
         ebs: true
   - name: az2
-    instanceType: r5.large
+    instanceType: @@CLUSTER_DB_SIZE@@
     availabilityZones: ["@@CLUSTER_PRIMARY_REGION@@b"]
     labels:
       workload: postgres
@@ -60,7 +60,7 @@ managedNodeGroups:
       withAddonPolicies:
         ebs: true
   - name: az3
-    instanceType: r5.large
+    instanceType: @@CLUSTER_DB_SIZE@@
     availabilityZones: ["@@CLUSTER_PRIMARY_REGION@@c"]
     labels:
       workload: postgres
@@ -69,7 +69,7 @@ managedNodeGroups:
       withAddonPolicies:
         ebs: true
   - name: pgbench-az-1
-    instanceType: m5.large
+    instanceType: @@CLUSTER_PGBENCH_SIZE@@
     availabilityZones: ["@@CLUSTER_PRIMARY_REGION@@a"]
     labels:
       workload: pgbench
@@ -78,7 +78,7 @@ managedNodeGroups:
       withAddonPolicies:
         ebs: true
   - name: monitor-az1
-    instanceType: m5.large
+    instanceType: @@CLUSTER_MONITOR_SIZE@@
     availabilityZones: ["@@CLUSTER_PRIMARY_REGION@@a"]
     labels:
       workload: monitor

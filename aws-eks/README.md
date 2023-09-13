@@ -35,6 +35,16 @@ instructions in the `work/jeeg/README.md` file.
 
 The final output example is in the `examples/jeeg` folder.
 
+## Instance types
+
+You can specify a different instance type for the database, for pgbench and for
+monitoring by using the environment variables in this example:
+
+```bash
+DB_INSTANCE_TYPE=r5.4xlarge PGBENCH_INSTANCE_TYPE=m5.2xlarge MONITOR_INSTANCE_TYPE=m5.2xlarge \
+  ./create-eks-cluster.sh cnpg eu-central-1 eu-west-1
+```
+
 ## Ackwnowledgments
 
 Without the help of my friends, colleagues and fellow contributors of

@@ -4,7 +4,7 @@ usage() {
 cat <<EOF
 This scripts facilitates the creation of 2 EKS clusters in different regions to
 help you understand concepts related to running Postgres inside Kubernetes with
-CloudNativePG. Please specify `PREFIX`, `PRIMARY_REGION` and `SECONDARY_REGION`.
+CloudNativePG. Please specify PREFIX, PRIMARY_REGION and SECONDARY_REGION.
 
 $0 PREFIX PRIMARY_REGION SECONDARY_REGION
 
@@ -21,6 +21,9 @@ sed \
   -e "s/@@CLUSTER_PREFIX@@/${CLUSTER_PREFIX}/g" \
   -e "s/@@CLUSTER_PRIMARY_REGION@@/${PRIMARY_REGION}/g" \
   -e "s/@@CLUSTER_SECONDARY_REGION@@/${SECONDARY_REGION}/g" \
+  -e "s/@@CLUSTER_DB_SIZE@@/${CLUSTER_DB_SIZE}/g" \
+  -e "s/@@CLUSTER_PGBENCH_SIZE@@/${CLUSTER_PGBENCH_SIZE}/g" \
+  -e "s/@@CLUSTER_MONITOR_SIZE@@/${CLUSTER_MONITOR_SIZE}/g" \
   -e "s/@@K8S_VERSION@@/${K8S_VERSION}/g" \
   ${3} > ${4}
 }
@@ -30,10 +33,13 @@ then
    usage
 fi
 
-K8S_VERSION=1.26
+K8S_VERSION="${K8S_VERSION:-1.27}"
 CLUSTER_PREFIX=$1
 CLUSTER_PRIMARY_REGION=$2
 CLUSTER_SECONDARY_REGION=$3
+CLUSTER_DB_SIZE="${DB_INSTANCE_TYPE:-r5.large}"
+CLUSTER_PGBENCH_SIZE="${PGBENCH_INSTANCE_TYPE:-m5.large}"
+CLUSTER_MONITOR_SIZE="${MONITOR_INSTANCE_TYPE:-m5.large}"
 
 TOP=$(cd "$(dirname "$0")"; pwd)
 WORKDIR=${TOP}/work/${CLUSTER_PREFIX}
