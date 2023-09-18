@@ -40,12 +40,12 @@ spec:
 
   # Volume with PGDATA
   storage:
-    storageClass: gp2
+    storageClass: ebs-sc
     size: 50Gi
 
   # Volume for WALs
   walStorage:
-    storageClass: gp2
+    storageClass: ebs-sc
     size: 10Gi
 
   # Cluster initialization

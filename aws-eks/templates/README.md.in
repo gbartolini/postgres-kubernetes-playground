@@ -118,11 +118,12 @@ To permanently delete the playground, run:
 ## Volume snapshots
 
 In order to use volume snapshots, you need to follow the instructions you find
-in the [Amazon Elastic Block Store Container Storage Interface](https://github.com/kubernetes-sigs/aws-ebs-csi-driver/tree/master/examples/kubernetes/snapshot)
-project.
 
-Specifically, you need to install the CRDs, the snapshot controller, the
-`VolumeSnapshotClass` and the `ebs-sc` `StorageClass`:
+The deployment script already installs the CRDs, the snapshot controller, the
+`VolumeSnapshotClass` and the `ebs-sc` `StorageClass`, through the following
+instructions taken from the
+[Amazon Elastic Block Store Container Storage Interface](https://github.com/kubernetes-sigs/aws-ebs-csi-driver/tree/master/examples/kubernetes/snapshot)
+project:
 
 ```bash
 kubectl kustomize https://github.com/kubernetes-csi/external-snapshotter//client/config/crd | kubectl apply -f -
@@ -131,8 +132,7 @@ kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-ebs-csi-d
 kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-ebs-csi-driver/master/examples/kubernetes/snapshot/manifests/classes/storageclass.yaml
 ```
 
-Then, in the definition of the `Cluster` resource, use the `ebs-sc` storage
-class in the Postgres volumes.
+All you need to do is use the `ebs-sc` storage class in the Postgres volumes.
 
 ## Enjoy CloudNativePG
 

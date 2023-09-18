@@ -3,6 +3,15 @@
 # Script to deploy two EKS clusters for CloudNativePG demonstration
 # purposes.
 
+# Shortcut to install volume snapshots
+function prepareVolumeSnapshots()
+{
+    kubectl kustomize https://github.com/kubernetes-csi/external-snapshotter//client/config/crd | kubectl apply -f -
+    kubectl -n kube-system kustomize https://github.com/kubernetes-csi/external-snapshotter//deploy/kubernetes/snapshot-controller | kubectl apply -f -
+    kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-ebs-csi-driver/master/examples/kubernetes/snapshot/manifests/classes/snapshotclass.yaml
+    kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-ebs-csi-driver/master/examples/kubernetes/snapshot/manifests/classes/storageclass.yaml
+}
+
 # Create the S3 Bucket in the @@CLUSTER_PRIMARY_REGION@@ region
 aws s3api create-bucket \
   --bucket @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@ \
@@ -29,5 +38,9 @@ aws s3api put-public-access-block \
 
 # Create the EKS cluster in the @@CLUSTER_PRIMARY_REGION@@ region
 eksctl create cluster -f @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@.yaml
+prepareVolumeSnapshots
+
 # Create the EKS cluster in the @@CLUSTER_SECONDARY_REGION@@ region
 eksctl create cluster -f @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@.yaml
+prepareVolumeSnapshots
+
