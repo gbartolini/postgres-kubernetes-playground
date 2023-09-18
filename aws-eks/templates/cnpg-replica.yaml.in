@@ -121,6 +121,8 @@ spec:
 
   # Backup configuration
   backup:
+    volumeSnapshot:
+      className: csi-aws-vsc
     barmanObjectStore:
       destinationPath: s3://@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@/
       s3Credentials:

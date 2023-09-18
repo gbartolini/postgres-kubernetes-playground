@@ -183,6 +183,18 @@ alertmanager:
       workload: monitor
 ```
 
+The `cloudnative-pg/kubestack.yaml` file should be ready to work with your deployment.
+You can simply run:
+
+```
+helm repo add prometheus-community \
+  https://prometheus-community.github.io/helm-charts
+
+helm upgrade --install -f cloudnative-pg/kubestack.yaml \
+  prometheus-community \
+  prometheus-community/kube-prometheus-stack
+```
+
 ## Accessing the S3 buckets
 
 You can access the content of the buckets using the

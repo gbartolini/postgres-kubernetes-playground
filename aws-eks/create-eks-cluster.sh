@@ -71,3 +71,9 @@ mangle ${CLUSTER_PRIMARY_REGION} ${CLUSTER_SECONDARY_REGION} ${TEMPLATES}/README
 mangle ${CLUSTER_PRIMARY_REGION} ${CLUSTER_SECONDARY_REGION} ${TEMPLATES}/cnpg-primary.yaml.in ${WORKDIR}/cloudnative-pg/${CLUSTER_PREFIX}-${CLUSTER_PRIMARY_REGION}.yaml
 # Manifest for the replica cluster
 mangle ${CLUSTER_PRIMARY_REGION} ${CLUSTER_SECONDARY_REGION} ${TEMPLATES}/cnpg-replica.yaml.in ${WORKDIR}/cloudnative-pg/${CLUSTER_PREFIX}-${CLUSTER_SECONDARY_REGION}.yaml
+
+# Manifest for kubestack
+curl -s https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/main/docs/src/samples/monitoring/kube-stack-config.yaml | \
+  sed -e 's/#workload/workload/' -e 's/#nodeSelector/nodeSelector/' \
+  -e 's/#alerManagerSpec/alertManagerSpec/' -e 's/#alertManagerSpec/alertManagerSpec/' \
+  > ${WORKDIR}/cloudnative-pg/kubestack.yaml
