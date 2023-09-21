@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+#
+# Script to remove the two GKE clusters that had been
+# previously set up for CloudNativePG demonstration purposes.
+
+# Delete the primary cluster
+gcloud container cluster delete @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@ --region=@@CLUSTER_PRIMARY_REGION@@
+
+# Delete the secondary cluster
+gcloud container cluster delete @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@ --region=@@CLUSTER_SECONDARY_REGION@@
+
+# Delete the primary GCS bucket
+gcloud storage rm --recursive gs://@@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
+
+# Delete the secondary GCS bucket
+gcloud storage rm --recursive gs://@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@

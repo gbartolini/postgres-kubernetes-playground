@@ -1,0 +1,221 @@
+# CloudNativePG demonstration cluster in EKS
+
+In this folder you will find details on how to create a very simple playground
+for CloudNativePG spread across 2 regions:
+
+- Primary GKE cluster  : `@@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@` (region: `@@CLUSTER_PRIMARY_REGION@@`)
+- Secondary GKE cluster: `@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@` (region: `@@CLUSTER_SECONDARY_REGION@@`)
+
+Each GKE cluster has:
+
+- 3 worker nodes for Postgres, in 3 different availability zones (with label `workload=postgres`)
+- 3 worker nodes for pgbench, Prometheus and Grafana (in the default cluster node pool)
+
+There's also a GCS bucket for base backups and the WAL archive in each region:
+each object store is writable by the local cluster, and can be read by the
+other one (this is needed to demonstrate a replica cluster in the other region
+that only uses the object store to be synchronized).
+
+> **IMPORTANT:** the GKE clusters created as part of this playground are
+> intended to be disposable and should not be used in production environments.
+
+## Prerequisites
+
+- [Google Cloud Command Line Interface](https://cloud.google.com/sdk/gcloud) correctly
+installed in your system
+- Enough privileges to create resources in GKE
+
+## How to deploy the playground
+
+Once you have ensured access to GCP is working, run:
+
+    ./deploy.sh
+
+Then wait (this can take between 30 minutes to an hour).
+
+At this point, you should have the two GKE clusters and the object stores
+properly set up. Make sure the nodes are up and running and the labels
+are correctly set, as explained in the next section.
+
+## Verify GKE nodes
+
+To start with, verify that all the nodes you need are in the `@@CLUSTER_PRIMARY_REGION@@` region cluster.
+
+First, load the kubectl credentials for the cluster:
+
+    gcloud container clusters get-credentials --region @@CLUSTER_PRIMARY_REGION@@ --name @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
+
+Then run:
+
+    kubectl get nodes -L topology.kubernetes.io/zone,node.kubernetes.io/instance-type,workload
+
+You should get something similar to this:
+
+    NAME                                                  STATUS   ROLES    AGE     VERSION           ZONE            INSTANCE-TYPE   WORKLOAD
+    gke-demo-cnpg-us-central-default-pool-244a7198-7st4   Ready    <none>   10m     v1.27.4-gke.900   us-central1-c   n2-standard-2
+    gke-demo-cnpg-us-central-default-pool-579f2ef2-rwjp   Ready    <none>   10m     v1.27.4-gke.900   us-central1-f   n2-standard-2
+    gke-demo-cnpg-us-central-default-pool-828eecd2-ksvp   Ready    <none>   10m     v1.27.4-gke.900   us-central1-b   n2-standard-2
+    gke-demo-cnpg-us-central1-postgres-2bd5856f-r98z      Ready    <none>   9m32s   v1.27.4-gke.900   us-central1-c   n2-highmem-2    postgres
+    gke-demo-cnpg-us-central1-postgres-48e60515-7rz3      Ready    <none>   9m33s   v1.27.4-gke.900   us-central1-b   n2-highmem-2    postgres
+    gke-demo-cnpg-us-central1-postgres-ccb3994d-w8sz      Ready    <none>   9m36s   v1.27.4-gke.900   us-central1-f   n2-highmem-2    postgres
+
+Now, switch `kubectl` to the @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@ cluster:
+
+    gcloud container clusters get-credentials --region @@CLUSTER_PRIMARY_REGION@@ --name @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
+
+and run again:
+
+    kubectl get nodes -L topology.kubernetes.io/zone,node.kubernetes.io/instance-type,workload
+
+## Object Storage Permissions
+
+> **IMPORTANT:** This section is critical to setup the backup infrastructure
+> for both regions, so you need to pay careful attention to this.
+
+[CloudNativePG supports Workload
+Identity](https://cloudnative-pg.io/documentation/current/backup_recovery/#google-cloud-storage)
+to authorize access to an object store using your Identity and Access Management (IAM) service account.
+
+The main idea is that the Postgres cluster in `@@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@`
+needs to write in the local `@@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@` GCS
+bucket, and (potentially) to read from the `@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@` bucket.
+
+Symmetrically, the Postgres cluster in `@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@` (which starts as a replica cluster) needs to write in the local `@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@` GCS
+bucket, and (at least initially) to read from the `@@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@` bucket.
+
+The deployment script creates a new IAM service account and links it to the
+Kubernetes Pod's service account.
+
+### There's more ...
+
+Workload Identity allows us to set this permission in a IAM service account that we can
+later specify in the CloudNativePG `cluster` definition. Specifically, each IAM
+has the following [predefined
+roles](https://cloud.google.com/storage/docs/access-control/iam-roles) in the local object store:
+
+- `roles/storage.objectUser`
+
+At the same time, it has the following read-only permissions for the GCS bucket
+in the other region:
+
+- `roles/storage.objectViewer`
+
+## How to tear down the playground
+
+To permanently delete the playground, run:
+
+    ./teardown.sh
+
+## Volume snapshots
+
+The deployment script already leverages the default StorageClass and installs the `VolumeSnapshotClass` through the
+following instructions taken from the
+[GKE Volume Snapshots
+documentation](https://cloud.google.com/kubernetes-engine/docs/how-to/persistent-volumes/volume-snapshots):
+
+## Enjoy CloudNativePG
+
+You now have two separate Kubernetes clusters. The `cloudnative-pg` folder
+contains two manifest files:
+
+- `@@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@.yaml`: for the initial primary
+  cluster
+- `@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@.yaml`: for the initial
+  replica cluster
+
+> **IMPORTANT:** Should you create and destroy the Postgres clusters multiple
+> times, make sure that the object stores are empty, as CloudNativePG prevents
+> you from writing WAL files on a non-empty bucket.
+
+### Installing the operator
+
+You can install the operator using the instructions you find in the
+[CloudNativePG documentation](https://cloudnative-pg.io/documentation/current/installation_upgrade/#directly-using-the-operator-manifest).
+
+### Installing Prometheus and Grafana
+
+You can install Prometheus and Grafana by following the instructions provided in
+["Quickstart: Part 4 - Monitor clusters with Prometheus and Grafana"](https://cloudnative-pg.io/documentation/current/quickstart/#part-4-monitor-clusters-with-prometheus-and-grafana).
+
+Make sure that you deploy them in the node with label `cloud.google.com/gke-nodepool: default-pool` by
+uncommenting the `nodeSelector` stanzas in the
+[kube-stack-config.yaml](https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/main/docs/src/samples/monitoring/kube-stack-config.yaml)
+file, and replacing them with the nodepool label, as follows:
+
+```
+nodeSelector:
+  cloud.google.com/gke-nodepool: default-pool
+prometheus:
+  ...
+  nodeSelector:
+    cloud.google.com/gke-nodepool: default-pool
+grafana:
+  ...
+  nodeSelector:
+    cloud.google.com/gke-nodepool: default-pool
+alertmanager:
+  ...
+  alertManagerSpec:
+    nodeSelector:
+      cloud.google.com/gke-nodepool: default-pool
+```
+
+The `cloudnative-pg/kubestack.yaml` file should be ready to work with your deployment.
+You can simply run:
+
+```
+helm repo add prometheus-community \
+  https://prometheus-community.github.io/helm-charts
+
+helm upgrade --install -f cloudnative-pg/kubestack.yaml \
+  prometheus-community \
+  prometheus-community/kube-prometheus-stack
+```
+
+## Accessing the GCS buckets
+
+To access the bucket in the primary `@@CLUSTER_PRIMARY_REGION@@` region, type:
+
+```
+    gcloud storage ls --recursive gs://@@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
+```
+
+To access the bucket in the secondary `@@CLUSTER_SECONDARY_REGION@@` region, type:
+
+```
+    gclodu storage ls --recursive gs://@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@
+```
+
+## Running pgbench
+
+You can run `pgbench` with the default OLTP-like benchmark only on a Postgres
+primary. First you need to initialize it as follows:
+
+    kubectl cnpg pgbench \
+      --dry-run \
+      --db-name pgbench \
+      --job-name pgbench-init \
+      --node-selector cloud.google.com/gke-nodepool: default-pool \
+      @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@ \
+      -- --initialize --scale '100'
+
+Then, you can run a benchmark like the very simple one here:
+
+    kubectl cnpg pgbench \
+      --dry-run \
+      --db-name pgbench \
+      --job-name pgbench-run \
+      --node-selector cloud.google.com/gke-nodepool: default-pool \
+      @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@ \
+      -- --time 30 --client 1 --jobs 1
+
+## Notes
+
+This file and the other ones in the `@@CLUSTER_PREFIX@@` folder have been automatically
+generated by [`create-gkke-cluster.sh`](https://github.com/gbartolini/postgres-kubernetes-playground/blob/main/gke/create-gke-cluster.sh) as follows:
+
+This example creates a GKE cluster with prefix `@@CLUSTER_PREFIX@@` in `@@CLUSTER_PRIMARY_REGION@@` and `@@CLUSTER_SECONDARY_REGION@@`:
+
+```bash
+./create-gke-cluster.sh @@CLUSTER_PREFIX@@ @@CLUSTER_PRIMARY_REGION@@ @@CLUSTER_SECONDARY_REGION@@
+```
