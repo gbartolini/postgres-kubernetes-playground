@@ -24,6 +24,11 @@ spec:
   affinity:
     nodeSelector:
       workload: postgres
+    tolerations:
+    - key: "workload"
+      operator: "Equal"
+      value: "postgres"
+      effect: "NoExecute"
 
   # Request Guaranteed QoS
   resources:
@@ -115,24 +120,29 @@ spec:
       #        serviceAccountTemplate:
       #          metadata:
       #            annotations:
-      #              iam.gke.io/gcp-service-account: TODO.iam.gserviceaccount.com
+      #              iam.gke.io/gcp-service-account: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@@@@GCP_PROJECT@@.iam.gserviceaccount.com
       #
       #  # Backup configuration
-      #  backup:
-      #    volumeSnapshot:
-      #      className: TODO
-      #    barmanObjectStore:
-      #      destinationPath: gs://@@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@/
-      #      s3Credentials:
-      #        inheritFromIAMRole: true
-      #      data:
-      #        compression: gzip
-      #        jobs: 2
-      #        immediateCheckpoint: true
-      #      wal:
-      #        compression: gzip
-      #        maxParallel: 2
-      #    retentionPolicy: '7d'
+  backup:
+    #volumeSnapshot:
+    #  className: cnpg-snapshotclass
+    barmanObjectStore:
+      destinationPath: gs://@@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@/
+      googleCredentials:
+        gkeEnvironment: true
+      data:
+        compression: gzip
+        jobs: 2
+        immediateCheckpoint: true
+      wal:
+        compression: gzip
+        maxParallel: 2
+    retentionPolicy: '7d'
+
+  serviceAccountTemplate:
+    metadata:
+      annotations:
+        iam.gke.io/gcp-service-account: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@@@@GCP_PROJECT@@.iam.gserviceaccount.com
 
 ---
 apiVersion: postgresql.cnpg.io/v1

@@ -6,21 +6,32 @@
 # Create the GCS Bucket in the @@CLUSTER_PRIMARY_REGION@@ region
 bucket1_name="gs://@@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@"
 bucket1_region="@@CLUSTER_PRIMARY_REGION@@"
-#gcloud storage buckets create "$bucket1_name" --region="$bucket1_region"
+gsa1_name="@@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@-user"
+gcloud storage buckets create "$bucket1_name" --location="$bucket1_region"
+gcloud iam service-accounts create "$gsa1_name" --project="@@GCP_PROJECT@@"
+gcloud storage buckets add-iam-policy-binding "$bucket1_name" \
+    --member "serviceAccount:${gsa1_name}@@@GCP_PROJECT@@.iam.gserviceaccount.com" \
+    --role "roles/storage.objectUser"
 
 # Create the GCS Bucket in the @@CLUSTER_SECONDARY_REGION@@ region
 bucket2_name="gs://@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@"
 bucket2_region="@@CLUSTER_SECONDARY_REGION@@"
-#gcloud storage buckets create "$bucket2_name" --region="$bucket2_region"
+#gcloud storage buckets create "$bucket2_name" --location="$bucket2_region"
 
 # Create the GKE cluster in the @@CLUSTER_PRIMARY_REGION@@ region
 cluster1_name="@@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@"
 cluster1_region="@@CLUSTER_PRIMARY_REGION@@"
-gcloud container clusters create "$cluster1_name" --region "$cluster1_region" --num-nodes=1 --cluster-version=@@K8S_VERSION@@ --machine-type=@@CLUSTER_PGBENCH_SIZE@@
-gcloud container node-pools create postgres --num-nodes=1 --cluster="$cluster1_name" --region "$cluster1_region" --node-labels=workload=postgres --machine-type=@@CLUSTER_DB_SIZE@@
+gcloud container clusters create "$cluster1_name" --region "$cluster1_region" --num-nodes=1 --cluster-version=@@K8S_VERSION@@ --machine-type=@@CLUSTER_PGBENCH_SIZE@@ --workload-pool="@@GCP_PROJECT@@.svc.id.goog"
+gcloud container node-pools create postgres --num-nodes=1 --cluster="$cluster1_name" --region "$cluster1_region" --node-labels=workload=postgres --node-taints=workload=postgres:NoExecute --machine-type=@@CLUSTER_DB_SIZE@@ 
+gcloud iam service-accounts add-iam-policy-binding "${gsa1_name}@@@GCP_PROJECT@@.iam.gserviceaccount.com" \
+    --role roles/iam.workloadIdentityUser \
+    --member "serviceAccount:@@GCP_PROJECT@@.svc.id.goog[default/${cluster1_name}]"
 
 # Create the GKE cluster in the @@CLUSTER_SECONDARY_REGION@@ region
 cluster2_name="@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@"
 cluster2_region="@@CLUSTER_SECONDARY_REGION@@"
-#gcloud container clusters create "$cluster2_name" --region "$cluster2_region" --num-nodes=1 --cluster-version=@@K8S_VERSION@@ --machine-type=@@CLUSTER_PGBENCH_SIZE@@
+#gcloud container clusters create "$cluster2_name" --region "$cluster2_region" --num-nodes=1 --cluster-version=@@K8S_VERSION@@ --machine-type=@@CLUSTER_PGBENCH_SIZE@@ --workkload-pool="@@GCP_PROJECT@@.svc.id.goog"
 #gcloud container node-pools create postgres --num-nodes=1 --cluster="$cluster2_name" --region "$cluster2_region" --node-labels=workload=postgres --machine-type=@@CLUSTER_DB_SIZE@@
+
+# Deploy VolumeSnapshotClass
+kubectl apply -f snapshot-class.yaml
