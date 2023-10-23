@@ -66,8 +66,11 @@ mangle ${CLUSTER_PRIMARY_REGION} ${CLUSTER_SECONDARY_REGION} ${TEMPLATES}/README
 # Manifest for the primary cluster
 mangle ${CLUSTER_PRIMARY_REGION} ${CLUSTER_SECONDARY_REGION} ${TEMPLATES}/deploy-cnpg.sh.in ${WORKDIR}/deploy-cnpg.sh
 mangle ${CLUSTER_PRIMARY_REGION} ${CLUSTER_SECONDARY_REGION} ${TEMPLATES}/cnpg-primary.yaml.in ${WORKDIR}/cloudnative-pg/${CLUSTER_PREFIX}-${CLUSTER_PRIMARY_REGION}.yaml
-# Manifest for the replica cluster
-mangle ${CLUSTER_PRIMARY_REGION} ${CLUSTER_SECONDARY_REGION} ${TEMPLATES}/cnpg-replica.yaml.in ${WORKDIR}/cloudnative-pg/${CLUSTER_PREFIX}-${CLUSTER_SECONDARY_REGION}.yaml
+mangle ${CLUSTER_PRIMARY_REGION} ${CLUSTER_SECONDARY_REGION} ${TEMPLATES}/psql-pod.yaml.in ${WORKDIR}/cloudnative-pg/psql-pod.yaml
+
+# Manifest for the restore cluster
+mangle ${CLUSTER_PRIMARY_REGION} ${CLUSTER_SECONDARY_REGION} ${TEMPLATES}/create-restore-cluster.sh.in ${WORKDIR}/cloudnative-pg/create-restore-cluster.sh
+mangle ${CLUSTER_PRIMARY_REGION} ${CLUSTER_SECONDARY_REGION} ${TEMPLATES}/cnpg-restore.yaml.in ${WORKDIR}/cloudnative-pg/${CLUSTER_PREFIX}-${CLUSTER_PRIMARY_REGION}-restore.yaml.in
 
 # Manifest for kubestack
 curl -s https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/main/docs/src/samples/monitoring/kube-stack-config.yaml | \
@@ -76,4 +79,5 @@ curl -s https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/main/doc
   > ${WORKDIR}/cloudnative-pg/kubestack.yaml
 
 chmod +x ${WORKDIR}/*.sh
+chmod +x ${WORKDIR}/cloudnative-pg/*.sh
 

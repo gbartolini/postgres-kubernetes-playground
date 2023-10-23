@@ -1,7 +1,7 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-  name: @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@
+  name: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
 spec:
   imageName: ghcr.io/cloudnative-pg/postgresql:15
 
@@ -9,9 +9,9 @@ spec:
   enableSuperuserAccess: false
 
   # One primary and two replicas (one at least synchronous)
-  instances: 3
-  minSyncReplicas: 1
-  maxSyncReplicas: 1
+  instances: 1
+  minSyncReplicas: 0
+  maxSyncReplicas: 0
 
   # Require different zones and different nodes with label "workload=postgres"
   topologySpreadConstraints:
@@ -24,14 +24,19 @@ spec:
   affinity:
     nodeSelector:
       workload: postgres
+    tolerations:
+    - key: "workload"
+      operator: "Equal"
+      value: "postgres"
+      effect: "NoExecute"
 
   # Request Guaranteed QoS
   resources:
     requests:
-      memory: '13Gi'
+      memory: '12Gi'
       cpu: 1.5
     limits:
-      memory: '13Gi'
+      memory: '12Gi'
       cpu: 1.5
 
   startDelay: 300
@@ -51,10 +56,15 @@ spec:
   # Cluster initialization
   bootstrap:
     recovery:
-      source: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
-  replica:
-    enabled: true
-    source: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
+      volumeSnapshots:
+        storage:
+          name: @@SNAPSHOT_VOLUME@@
+          kind: VolumeSnapshot
+          apiGroup: snapshot.storage.k8s.io
+        walStorage:
+          name: @@SNAPSHOT_WAL@@
+          kind: VolumeSnapshot
+          apiGroup: snapshot.storage.k8s.io
 
   # Enable replication slots for HA
   replicationSlots:
@@ -94,55 +104,42 @@ spec:
 
       # Replication
       hot_standby_feedback: 'on'
-      max_slot_wal_keep_size: '8GB' # Not yet supported
+      max_slot_wal_keep_size: '8GB'
 
   monitoring:
     enablePodMonitor: true
 
-      #  externalClusters:
-      #    - name: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
-      #      barmanObjectStore:
-      #        destinationPath: gs://@@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@/
-      #        googleCredentials:
-      #          gkeEnvironment: true
-      #        data:
-      #          compression: gzip
-      #          jobs: 2
-      #        wal:
-      #          compression: gzip
-      #          maxParallel: 2
-      #
-      #  # Comment the following if you are not using backups
-      #  serviceAccountTemplate:
-      #      metadata:
-      #        annotations:
-      #          iam.gke.io/gcp-service-account: TODO.iam.gserviceaccount.com
-      #
-      #  # Backup configuration
-      #  backup:
-      #    volumeSnapshot:
-      #      className: TODO
-      #    barmanObjectStore:
-      #      destinationPath: gs://@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@/
-      #      s3Credentials:
-      #        inheritFromIAMRole: true
-      #      data:
-      #        compression: gzip
-      #        jobs: 2
-      #        immediateCheckpoint: true
-      #      wal:
-      #        compression: gzip
-      #        maxParallel: 2
-      #    retentionPolicy: '7d'
-      #
+  # Backup configuration
+  backup:
+    volumeSnapshot:
+      className: cnpg-snapshotclass
+    barmanObjectStore:
+      destinationPath: gs://@@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@/
+      googleCredentials:
+        gkeEnvironment: true
+      data:
+        compression: gzip
+        jobs: 2
+        immediateCheckpoint: true
+      wal:
+        compression: gzip
+        maxParallel: 2
+    retentionPolicy: '7d'
+
+  serviceAccountTemplate:
+    metadata:
+      annotations:
+        iam.gke.io/gcp-service-account: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@@@@GCP_PROJECT@@.iam.gserviceaccount.com
+
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
-  name: @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@-backup
+  name: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@-backup
 spec:
   schedule: '0 0 0 * * *'
   backupOwnerReference: self
+  method: volumeSnapshot
   cluster:
-    name: @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@
+    name: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
   immediate: true

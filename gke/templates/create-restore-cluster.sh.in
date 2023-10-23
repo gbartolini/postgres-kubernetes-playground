@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+usage() {
+cat <<EOF
+This scripts facilitates the creation of 2 GKE clusters in different regions to
+help you understand concepts related to running Postgres inside Kubernetes with
+CloudNativePG. Please specify PREFIX, PRIMARY_REGION and SECONDARY_REGION.
+
+$0
+
+EOF
+exit 1
+}
+
+mangle() {
+sed \
+  -e "s/@@SNAPSHOT_VOLUME@@/${SNAPSHOT_VOLUME}/g" \
+  -e "s/@@SNAPSHOT_WAL@@/${SNAPSHOT_WAL}/g" \
+  ${1} > ${2}
+}
+
+#TOP=$(cd "$(dirname "$0")"; pwd)
+
+# Find most recent snapshots
+snaps="$(kubectl get volumesnapshots | grep true |  tail -2 | awk '{print $1}' | tr '\n' ' ')"
+read -r SNAPSHOT_VOLUME SNAPSHOT_WAL <<< "$snaps"
+
+# Manifest for the restore cluster
+mangle @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@-restore.yaml.in @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@-restore.yaml
+
+kubectl apply -f @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@-restore.yaml

@@ -124,8 +124,8 @@ spec:
       #
       #  # Backup configuration
   backup:
-    #volumeSnapshot:
-    #  className: cnpg-snapshotclass
+    volumeSnapshot:
+      className: cnpg-snapshotclass
     barmanObjectStore:
       destinationPath: gs://@@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@/
       googleCredentials:
@@ -152,6 +152,7 @@ metadata:
 spec:
   schedule: '0 0 0 * * *'
   backupOwnerReference: self
+  method: volumeSnapshot
   cluster:
     name: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
   immediate: true

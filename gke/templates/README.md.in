@@ -1,10 +1,9 @@
-# CloudNativePG demonstration cluster in EKS
+# CloudNativePG demonstration cluster in GKE
 
 In this folder you will find details on how to create a very simple playground
-for CloudNativePG spread across 2 regions:
+for CloudNativePG to demonstrate backup and restore.
 
 - Primary GKE cluster  : `@@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@` (region: `@@CLUSTER_PRIMARY_REGION@@`)
-- Secondary GKE cluster: `@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@` (region: `@@CLUSTER_SECONDARY_REGION@@`)
 
 Each GKE cluster has:
 
@@ -183,7 +182,7 @@ To access the bucket in the primary `@@CLUSTER_PRIMARY_REGION@@` region, type:
 To access the bucket in the secondary `@@CLUSTER_SECONDARY_REGION@@` region, type:
 
 ```
-    gclodu storage ls --recursive gs://@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@
+    gcloud storage ls --recursive gs://@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@
 ```
 
 ## Running pgbench
@@ -219,3 +218,50 @@ This example creates a GKE cluster with prefix `@@CLUSTER_PREFIX@@` in `@@CLUSTE
 ```bash
 ./create-gke-cluster.sh @@CLUSTER_PREFIX@@ @@CLUSTER_PRIMARY_REGION@@ @@CLUSTER_SECONDARY_REGION@@
 ```
+
+## Backup and Restore Demo
+
+### 1. Create the GKE cluster
+```bash
+./deploy.sh
+```
+
+### 2. Deploy the CNPG operator and Create the Postgres cluster
+```bash
+./deploy-cnpg.sh
+kubectl get pods
+kubectl get svc
+kubectl get pvc
+```
+
+### 3. Login to the database and populate it with data
+```bash
+cd cloudnative-pg
+kubectl apply -f psql.yaml
+kubectl exec -ti psql -- /bin/bash
+# psql
+```
+
+### 4. Take a backup of the Postgres cluster
+```bash
+TODO
+kubectl get volumesnapshots
+```
+
+### 5. Delete the Postgres cluster
+```bash
+kubectl delete cluster @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
+kubectl get pods
+kubectl get pvc
+```
+
+### 6. Restore the Postgres cluster from backup
+```bash
+./create-restore-cluster.sh
+kubectl get pods
+kubectl describe pvcs
+kubectl exec -ti psql -- /bin/bash
+# psql
+```
+
+### 7. Add replicas to the Postgres cluster
