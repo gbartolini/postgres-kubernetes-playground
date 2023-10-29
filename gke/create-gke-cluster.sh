@@ -16,7 +16,7 @@ exit 1
 
 mangle() {
 PRIMARY_REGION=$1
-SECONDARY_REGION="TODO"
+SECONDARY_REGION=$2
 sed \
   -e "s/@@CLUSTER_PREFIX@@/${CLUSTER_PREFIX}/g" \
   -e "s/@@CLUSTER_PRIMARY_REGION@@/${PRIMARY_REGION}/g" \
@@ -26,7 +26,7 @@ sed \
   -e "s/@@CLUSTER_MONITOR_SIZE@@/${CLUSTER_MONITOR_SIZE}/g" \
   -e "s/@@K8S_VERSION@@/${K8S_VERSION}/g" \
   -e "s/@@GCP_PROJECT@@/${PROJECT_ID}/g" \
-  ${2} > ${3}
+  ${3} > ${4}
 }
 
 if [ -z "$2" ]
@@ -48,10 +48,8 @@ TOP=$(cd "$(dirname "$0")"; pwd)
 WORKDIR=${TOP}/work/${CLUSTER_PREFIX}
 TEMPLATES=${TOP}/templates
 
-if [ ! -d ${WORKDIR} ]
-then
-  mkdir -p ${WORKDIR}/cloudnative-pg
-fi
+mkdir -p ${WORKDIR}/cloudnative-pg
+mkdir -p ${WORKDIR}/psql
 
 # Create the script for the setup
 mangle ${CLUSTER_PRIMARY_REGION} ${CLUSTER_SECONDARY_REGION} ${TEMPLATES}/deploy.sh.in ${WORKDIR}/deploy.sh
@@ -67,7 +65,6 @@ mangle ${CLUSTER_PRIMARY_REGION} ${CLUSTER_SECONDARY_REGION} ${TEMPLATES}/README
 mangle ${CLUSTER_PRIMARY_REGION} ${CLUSTER_SECONDARY_REGION} ${TEMPLATES}/deploy-cnpg.sh.in ${WORKDIR}/deploy-cnpg.sh
 mangle ${CLUSTER_PRIMARY_REGION} ${CLUSTER_SECONDARY_REGION} ${TEMPLATES}/generate-data.sh.in ${WORKDIR}/cloudnative-pg/generate-data.sh
 mangle ${CLUSTER_PRIMARY_REGION} ${CLUSTER_SECONDARY_REGION} ${TEMPLATES}/cnpg-primary.yaml.in ${WORKDIR}/cloudnative-pg/${CLUSTER_PREFIX}-${CLUSTER_PRIMARY_REGION}.yaml
-mangle ${CLUSTER_PRIMARY_REGION} ${CLUSTER_SECONDARY_REGION} ${TEMPLATES}/psql-pod.yaml.in ${WORKDIR}/cloudnative-pg/psql-pod.yaml
 
 # Manifest for the restore cluster
 mangle ${CLUSTER_PRIMARY_REGION} ${CLUSTER_SECONDARY_REGION} ${TEMPLATES}/create-restore-cluster.sh.in ${WORKDIR}/cloudnative-pg/create-restore-cluster.sh
@@ -79,6 +76,11 @@ curl -s https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/main/doc
   -e 's/#alerManagerSpec/alertManagerSpec/' -e 's/#alertManagerSpec/alertManagerSpec/' \
   > ${WORKDIR}/cloudnative-pg/kubestack.yaml
 
+# Build script for psql docker image
+mangle ${CLUSTER_PRIMARY_REGION} ${CLUSTER_SECONDARY_REGION} ${TEMPLATES}/build-psql.sh.in ${WORKDIR}/psql/build-psql.sh
+mangle ${CLUSTER_PRIMARY_REGION} ${CLUSTER_SECONDARY_REGION} ${TEMPLATES}/Dockerfile.in ${WORKDIR}/psql/Dockerfile
+mangle ${CLUSTER_PRIMARY_REGION} ${CLUSTER_SECONDARY_REGION} ${TEMPLATES}/psql-pod.yaml.in ${WORKDIR}/psql/psql-pod.yaml
+
 chmod +x ${WORKDIR}/*.sh
 chmod +x ${WORKDIR}/cloudnative-pg/*.sh
-
+chmod +x ${WORKDIR}/psql/*.sh
