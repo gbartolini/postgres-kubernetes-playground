@@ -46,7 +46,7 @@ spec:
   # Volume with PGDATA
   storage:
     storageClass: standard-rwo
-    size: 50Gi
+    size: 80Gi
 
   # Volume for WALs
   walStorage:
@@ -129,7 +129,7 @@ spec:
   serviceAccountTemplate:
     metadata:
       annotations:
-        iam.gke.io/gcp-service-account: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@@@@GCP_PROJECT@@.iam.gserviceaccount.com
+        iam.gke.io/gcp-service-account: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@-user@@@GCP_PROJECT@@.iam.gserviceaccount.com
 
 ---
 apiVersion: postgresql.cnpg.io/v1

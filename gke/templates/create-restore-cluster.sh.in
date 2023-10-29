@@ -2,9 +2,12 @@
 
 usage() {
 cat <<EOF
-This scripts facilitates the creation of 2 GKE clusters in different regions to
-help you understand concepts related to running Postgres inside Kubernetes with
-CloudNativePG. Please specify PREFIX, PRIMARY_REGION and SECONDARY_REGION.
+This scripts facilitates the restoration of a CNPG cluster.
+It finds the last two volume snapshots and generates the
+restored cluster manifest from them.
+
+Note this script assumes that there is nothing else
+backed up in this cluster.
 
 $0
 

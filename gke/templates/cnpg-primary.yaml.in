@@ -46,7 +46,7 @@ spec:
   # Volume with PGDATA
   storage:
     storageClass: standard-rwo
-    size: 50Gi
+    size: 80Gi
 
   # Volume for WALs
   walStorage:
@@ -104,25 +104,6 @@ spec:
   monitoring:
     enablePodMonitor: true
 
-      #  externalClusters:
-      #    - name: @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@
-      #      barmanObjectStore:
-      #        destinationPath: gs://@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@/
-      #        googleCredentials:
-      #          gkeEnvironment:true
-      #        data:
-      #          compression: gzip
-      #          jobs: 2
-      #        wal:
-      #          compression: gzip
-      #          maxParallel: 2
-      #
-      #        serviceAccountTemplate:
-      #          metadata:
-      #            annotations:
-      #              iam.gke.io/gcp-service-account: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@@@@GCP_PROJECT@@.iam.gserviceaccount.com
-      #
-      #  # Backup configuration
   backup:
     volumeSnapshot:
       className: cnpg-snapshotclass
@@ -142,7 +123,7 @@ spec:
   serviceAccountTemplate:
     metadata:
       annotations:
-        iam.gke.io/gcp-service-account: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@@@@GCP_PROJECT@@.iam.gserviceaccount.com
+        iam.gke.io/gcp-service-account: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@-user@@@GCP_PROJECT@@.iam.gserviceaccount.com
 
 ---
 apiVersion: postgresql.cnpg.io/v1

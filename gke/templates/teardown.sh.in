@@ -7,10 +7,10 @@
 gcloud container clusters delete @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@ --region=@@CLUSTER_PRIMARY_REGION@@
 
 # Delete the secondary cluster
-gcloud container clusters delete @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@ --region=@@CLUSTER_SECONDARY_REGION@@
+# gcloud container clusters delete @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@ --region=@@CLUSTER_SECONDARY_REGION@@
 
 # Delete the primary GCS bucket
 gcloud storage rm --recursive gs://@@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
 
 # Delete the secondary GCS bucket
-gcloud storage rm --recursive gs://@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@
+# gcloud storage rm --recursive gs://@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@
