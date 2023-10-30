@@ -1,0 +1,6 @@
+#!/bin/bash
+
+kubectl cnpg pgbench \
+  --job-name pgbench-init \
+  @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@ \
+  -- --initialize --scale 1500

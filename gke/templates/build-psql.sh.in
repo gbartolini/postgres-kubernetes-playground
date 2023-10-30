@@ -1,0 +1,5 @@
+#!/bin/bash
+
+docker build -t psql:latest .
+docker tag psql:latest @@CLUSTER_PRIMARY_REGION@@-docker.pkg.dev/@@GCP_PROJECT@@/postgres/psql:latest
+docker push @@CLUSTER_PRIMARY_REGION@@-docker.pkg.dev/@@GCP_PROJECT@@/postgres/psql:latest
