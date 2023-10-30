@@ -5,9 +5,6 @@ metadata:
 spec:
   imageName: ghcr.io/cloudnative-pg/postgresql:15
 
-  # Disable remote access as `postgres` superuser
-  enableSuperuserAccess: false
-
   # One primary and two replicas (one at least synchronous)
   instances: 3
   minSyncReplicas: 1
@@ -34,10 +31,6 @@ spec:
       memory: '14Gi'
       cpu: 1.5
 
-  startDelay: 300
-  stopDelay: 300
-  switchoverDelay: 600
-
   # Volume with PGDATA
   storage:
     storageClass: ebs-sc
@@ -55,11 +48,6 @@ spec:
       walSegmentSize: 64
       postInitSQL:
         - CREATE DATABASE pgbench OWNER app
-
-  # Enable replication slots for HA
-  replicationSlots:
-    highAvailability:
-      enabled: true
 
   # PostgreSQL configuration
   postgresql:

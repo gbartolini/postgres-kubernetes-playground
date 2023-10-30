@@ -5,9 +5,6 @@ metadata:
 spec:
   imageName: ghcr.io/cloudnative-pg/postgresql:15
 
-  # Disable remote access as `postgres` superuser
-  enableSuperuserAccess: false
-
   # One primary and two replicas (one at least synchronous)
   instances: 1
   minSyncReplicas: 0
@@ -65,11 +62,6 @@ spec:
           name: @@SNAPSHOT_WAL@@
           kind: VolumeSnapshot
           apiGroup: snapshot.storage.k8s.io
-
-  # Enable replication slots for HA
-  replicationSlots:
-    highAvailability:
-      enabled: true
 
   # PostgreSQL configuration
   postgresql:
