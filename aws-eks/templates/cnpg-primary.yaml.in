@@ -3,7 +3,7 @@ kind: Cluster
 metadata:
   name: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
 spec:
-  imageName: ghcr.io/cloudnative-pg/postgresql:15
+  imageName: ghcr.io/cloudnative-pg/postgresql:16
 
   # One primary and two replicas (one at least synchronous)
   instances: 3
