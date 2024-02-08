@@ -142,7 +142,31 @@ Collect and compare results.
 
 ### Test #3 - Data and index tablespaces
 
-TODO
+Open the [`03-pgbench-tbs.yaml`](03-pgbench-tbs.yaml) file, adapt it for
+your scope, and apply it to create the `pgbench-tbs` cluster.
+
+Now, initialize the database with `pgbench` requesting to use the `data`
+tablespace for data and the `idx` tablespace for indexes:
+
+```bash
+kubectl cnpg pgbench --dry-run \
+  --db-name pgbench \
+  --job-name pgbench-init-pgbench-tbs \
+  --node-selector workload=pgbench \
+  pgbench-tbs \
+  -- --initialize --tablespace data --index-tablespace idx --scale '3000' | kubectl apply -f -
+```
+
+Once the job completes, you can then run the `pgbench` job as usual, like this:
+
+```bash
+kubectl cnpg pgbench --dry-run \
+  --db-name pgbench \
+  --job-name pgbench-run-pgbench-tbs \
+  --node-selector workload=pgbench \
+  pgbench-tbs \
+  -- --time 300 --client 16 --jobs 8 | kubectl apply -f -
+```
 
 ### Test #4 - Tablespaces and 8 partitions
 

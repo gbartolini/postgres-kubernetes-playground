@@ -1,0 +1,83 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pgbench-tbs
+spec:
+  imageName: ghcr.io/cloudnative-pg/postgresql:16
+
+  instances: 1
+
+  affinity:
+    nodeSelector:
+      workload: postgres
+
+  # Request Guaranteed QoS
+  resources:
+    requests:
+      memory: '64Gi'
+      cpu: 14
+    limits:
+      memory: '64Gi'
+      cpu: 14
+
+  # Volume with PGDATA
+  storage:
+    storageClass: ebs-sc
+    size: 20Gi
+
+  walStorage:
+    storageClass: ebs-sc
+    size: 20Gi
+
+  tablespaces:
+    - name: data
+      storage:
+        storageClass: ebs-sc
+        size: 50Gi
+    - name: idx
+      storage:
+        storageClass: ebs-sc
+        size: 30Gi
+
+  # Cluster initialization
+  bootstrap:
+    initdb:
+      dataChecksums: true
+      walSegmentSize: 64
+      postInitSQL:
+        - CREATE DATABASE pgbench OWNER app
+
+  # PostgreSQL configuration
+  postgresql:
+    parameters:
+      # Connections
+      max_connections: '100'
+
+      # Memory configuration
+      shared_buffers: '8GB'
+      maintenance_work_mem: '1GB'
+      effective_cache_size: '56GB'
+      shared_memory_type: 'sysv'
+      dynamic_shared_memory_type: 'sysv'
+
+      # Checkpoint management
+      min_wal_size: '1GB'
+      max_wal_size: '5GB'
+      checkpoint_timeout: '900s'
+      checkpoint_completion_target: '0.9'
+
+      # Log configuration
+      log_checkpoints: 'on'
+      log_lock_waits: 'on'
+      log_min_duration_statement: '1000'
+      log_statement: 'ddl'
+      log_temp_files: '1024'
+      log_autovacuum_min_duration: '1s'
+
+      # Enable pg_stat_statements
+      pg_stat_statements.max: '10000'
+      pg_stat_statements.track: 'all'
+
+      # Replication
+      hot_standby_feedback: 'on'
+      max_slot_wal_keep_size: '8GB'
