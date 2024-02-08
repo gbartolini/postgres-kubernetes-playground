@@ -1,65 +1,65 @@
-# Experimenting with multiple volumes in Postgres with CloudNativePG
+# CloudNativePG Benchmarking Documentation
 
-With the introduction of declarative tablespaces in version 1.22, CloudNativePG
-now provides full support for multiple volumes in PostgreSQL through:
+Welcome to the CloudNativePG benchmarking guide! This documentation outlines
+the process of experimenting with multiple volumes in PostgreSQL using
+CloudNativePG. With the recent introduction of declarative tablespaces in
+version 1.22, CloudNativePG now fully supports multiple volumes in PostgreSQL,
+offering increased flexibility and scalability.
 
-- main `PGDATA` volume
-- dedicated [volume for Write-Ahead Logs (WALs)](https://cloudnative-pg.io/documentation/current/storage/#volume-for-wal)
-- arbitrary number of volumes, each dedicated to a single [PostgreSQL tablespace](https://cloudnative-pg.io/documentation/current/tablespaces/)
-  (including for [temporary purposes](https://cloudnative-pg.io/documentation/current/tablespaces/#temporary-tablespaces))
+## Supported Volumes
 
-This page provides some guidelines on how to perform some benchmarks on your
-environment, using your own storage classes.
-**Remember:** our advice is to just rely on
-[Postgres replication instead of storage replication](https://cloudnative-pg.io/documentation/current/architecture/#synchronizing-the-state),
-so make sure that your tests also cover single replica volumes.
+CloudNativePG supports the following volumes:
 
-The recommendation is to run a series of tests with an increasing number of
-volumes:
+- Main `PGDATA` volume
+- Dedicated [WAL volume](https://cloudnative-pg.io/documentation/current/storage/#volume-for-wal)
+- Arbitrary volumes for individual [PostgreSQL tablespaces](https://cloudnative-pg.io/documentation/current/tablespaces/) (including temporary tablespaces)
 
-1. instance with a single volume (`PGDATA` only)
-2. instance with a dedicated WAL volume 
-3. instance with a tablespace for data and a tablespace for indexes
-4. instance with 8 tablespaces, with tables partitioned by hash (8 partitions)
+## Benchmarking Guidelines
 
-If your Kubernetes system is properly configured, your benchmarks
-should highlight vertical scalability on the I/O level.
+To conduct benchmarks in your environment using your storage classes, consider
+the following steps:
 
-Please share your results with me. I am planning to use the findings from this
-project in my talk at KubeCon Europe in Paris in March 2024.
+1. Run tests with an increasing number of volumes:
+   - Instance with a single volume (`PGDATA` only)
+   - Instance with a dedicated WAL volume
+   - Instance with a tablespace for data and a tablespace for indexes
+   - Instance with 8 tablespaces, with tables partitioned by hash (8 partitions)
 
-## A note about the Kubernetes environment
+2. Ensure that your tests cover single replica volumes, as we recommend relying on
+   [Postgres replication](https://cloudnative-pg.io/documentation/current/architecture/#synchronizing-the-state) rather than storage replication.
 
-I have been reusing a cluster generated using the [AWK-AKS demo](https://github.com/gbartolini/postgres-kubernetes-playground/tree/main/aws-eks) I created for my KubeCon NA talk in Chicago in November 2023. I have used this also to write this blog article about [volume snapshot backup](https://www.enterprisedb.com/postgresql-disaster-recovery-with-kubernetes-volume-snapshots-using-cloudnativepg).
+3. Share your results with us, as we plan to incorporate findings into a talk at KubeCon Europe in March 2024.
 
-In this specific case, I have been running tests on Amazon EKS dedicating a
-`r5.4xlarge` and the `ebs-sc` storage class (supporting volume snapshots) for
-the PostgreSQL instances. As a result, the manifests reflect these
-configurations. Make sure that you adapt the `Cluster` manifests based on your
-storage class and the available CPU/Memory resources.
+## Kubernetes Environment Note
 
-For `pgbench`, I have reserved an `m5.2xlarge` instance.
+The benchmarking environment used for these tests was generated using the
+[AWK-AKS demo](https://github.com/gbartolini/postgres-kubernetes-playground/tree/main/aws-eks)
+presented at KubeCon NA in November 2023. Tests were conducted on Amazon EKS,
+utilizing the `r5.4xlarge` instance and the `ebs-sc` storage class. Manifests
+provided reflect these configurations; adjust them based on your storage class
+and available CPU/Memory resources.
 
-Before you run any test, please
-[install the latest available version of the operator](https://cloudnative-pg.io/documentation/current/installation_upgrade/),
-as well as the [kubectl cnpg plugin](https://cloudnative-pg.io/documentation/current/kubectl-plugin/).
+## Before You Begin
 
-## General test procedure
+Ensure you have:
 
-The general scheme of a test is the following:
+- Installed the latest version of the CloudNativePG operator [following the instructions](https://cloudnative-pg.io/documentation/current/installation_upgrade/).
+- Installed the [kubectl cnpg plugin](https://cloudnative-pg.io/documentation/current/kubectl-plugin/).
 
-- deploy the PostgreSQL `Cluster` resource using the specific test manifest
-- run the initialization process of `pgbench` with the desired scale, making sure you collect:
-    - the overall time of initialization (in the job log)
-    - the size of the database (just connect to the instance with `psql` and type `l+`)
-- run `pgbench` OLTP-like process for a given amount of time (start with 300
-  seconds to validate the solution, then raise it), making sure you collect the output of the `pgbench` job (in particular the number of TPS).
+## General Test Procedure
 
-In these tests I use a scale of `3000` for pgbench, which produces a database
-of roughly 44GB. Start with this or a smaller value first, and when you are
-sure the procedure works, feel free to raise the number.
+The general test procedure involves:
 
-## Test #1 - PGDATA Only
+1. Deploying the PostgreSQL `Cluster` resource using a specific test manifest.
+2. Running the initialization process of `pgbench` with desired scale.
+3. Running `pgbench` OLTP-like processes for a given time, collecting relevant metrics.
+
+## Example Tests
+
+### Test #1 - PGDATA Only
+
+Open the [`01-pgdata-only.yaml`](01-pgdata-only.yaml) file and adapt it for
+your scope.
 
 Create the `pgdata-only` cluster by running:
 
@@ -132,29 +132,28 @@ tps = 3510.198652 (without initial connection time)
 
 Destroy the cluster.
 
-## Test #2 - PGDATA and WALs
+### Test #2 - PGDATA and WALs
 
-Repeat the same steps on a cluster created using the `02-pgdata-wal.yaml` file
-as a source, and by changing the name of `pgbench` jobs.
+Repeat the steps using the [`02-pgdata-wal.yaml`](02-pg-data.yaml) file as a
+base, adapting to your scope. Also, make sure that you adjust job names
+accordingly.
 
-Collect the results. This is what I got:
+Collect and compare results.
 
-```console
-pgbench (16.1 (Debian 16.1-1.pgdg110+1))
-starting vacuum...end.
-transaction type: <builtin: TPC-B (sort of)>
-scaling factor: 3000
-query mode: simple
-number of clients: 16
-number of threads: 8
-maximum number of tries: 1
-duration: 300 s
-number of transactions actually processed: 1542740
-number of failed transactions: 0 (0.000%)
-latency average = 3.111 ms
-initial connection time = 32.535 ms
-tps = 5142.932428 (without initial connection time)
-```
+### Test #3 - Data and index tablespaces
 
-The increase in performance in this case is evident.
+TODO
 
+### Test #4 - Tablespaces and 8 partitions
+
+TODO
+
+## Conclusions
+
+Feel free to adapt these tests based on your specific use case and
+requirements. We appreciate your collaboration in sharing your results,
+contributing to the collective understanding of CloudNativePG performance.
+
+Happy benchmarking!
+
+Gabriele
