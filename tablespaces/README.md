@@ -63,13 +63,13 @@ your scope.
 
 Create the `pgdata-only` cluster by running:
 
-```bash
+```sh
 kubectl apply -f 01-pgdata-only.yaml
 ```
 
 Generate the `pgbench` init job with:
 
-```bash
+```sh
 kubectl cnpg pgbench --dry-run \
   --db-name pgbench \
   --job-name pgbench-init-pgdata-only \
@@ -80,13 +80,13 @@ kubectl cnpg pgbench --dry-run \
 
 Then watch the progress with:
 
-```bash
-kubectl logs jobs/pgbench-init-pgdata-only pgbench  -f
+```sh
+kubectl logs jobs/pgbench-init-pgdata-only pgbench -f
 ```
 
 With the following output:
 
-```console
+```
 299900000 of 300000000 tuples (99%) done (elapsed 751.64 s, remaining 0.25 s)
 300000000 of 300000000 tuples (100%) done (elapsed 751.74 s, remaining 0.00 s)
 vacuuming...
@@ -96,7 +96,7 @@ done in 935.63 s (drop tables 0.03 s, create tables 0.01 s, client-side generate
 
 Then run `pgbench` for 5 minutes:
 
-```bash
+```sh
 kubectl cnpg pgbench --dry-run \
   --db-name pgbench \
   --job-name pgbench-run-pgdata-only \
@@ -105,15 +105,11 @@ kubectl cnpg pgbench --dry-run \
   -- --time 300 --client 16 --jobs 8 | kubectl apply -f -
 ```
 
-And watch the progress with:
+Then collect the results:
 
-```bash
-kubectl logs jobs/pgbench-run-pgdata-only  -f
-``` 
+```sh
+kubectl logs jobs/pgbench-run-pgdata-only
 
-The final output is similar to:
-
-```console
 pgbench (16.1 (Debian 16.1-1.pgdg110+1))
 starting vacuum...end.
 transaction type: <builtin: TPC-B (sort of)>
@@ -132,6 +128,7 @@ tps = 3510.198652 (without initial connection time)
 
 Destroy the cluster.
 
+
 ### Test #2 - PGDATA and WALs
 
 Repeat the steps using the [`02-pgdata-wal.yaml`](02-pg-data.yaml) file as a
@@ -148,7 +145,7 @@ your scope, and apply it to create the `pgbench-tbs` cluster.
 Now, initialize the database with `pgbench` requesting to use the `data`
 tablespace for data and the `idx` tablespace for indexes:
 
-```bash
+```
 kubectl cnpg pgbench --dry-run \
   --db-name pgbench \
   --job-name pgbench-init-pgbench-tbs \
@@ -159,7 +156,7 @@ kubectl cnpg pgbench --dry-run \
 
 Once the job completes, you can then run the `pgbench` job as usual, like this:
 
-```bash
+```
 kubectl cnpg pgbench --dry-run \
   --db-name pgbench \
   --job-name pgbench-run-pgbench-tbs \
@@ -170,7 +167,47 @@ kubectl cnpg pgbench --dry-run \
 
 ### Test #4 - Tablespaces and 8 partitions
 
-TODO
+Given that [`pgbench` doesn't yet support partitioning of the history
+table](https://commitfest.postgresql.org/47/4679/), and it is not possible to
+automatically assign a partition to a given tablespace, I provide a modified
+schema of the `pgbench` database to have 8 hash partitions spread on 8
+different tablespaces. See: [pgbench-8tbs-schema.sql](pgbench-8tbs-schema.sql).
+
+Before you create the cluster, make sure that you create the configmap for the
+projected volume:
+
+```
+kubectl create configmap pgbench-sql --from-file pgbench-8tbs-schema.sql
+```
+
+Open the [`04-pgbench-8tbs.yaml`](04-pgbench-8tbs.yaml) file, adapt it for
+your scope, and apply it to create the `pgbench-8tbs` cluster.
+
+Connect to the PostgreSQL instance and create the schema, by running:
+
+```
+kubectl exec -ti pgbench-8tbs-1 -- psql -f /projected/pgbench-8tbs-schema.sql
+```
+
+Then, generate the `pgbench` init job with (note the `--init-steps` and
+`--partitions` options):
+
+```
+kubectl cnpg pgbench --dry-run \
+  --db-name pgbench \
+  --job-name pgbench-init-8tbs \
+  --node-selector workload=pgbench \
+  pgbench-8tbs \
+  -- --initialize --init-steps gv --partitions 8 --scale '3000' | kubectl apply -f -
+```
+
+Then run the usual `pgbench` job.
+
+## Results
+
+| Author | Date | Environment | Postgres cores | Postgres memory | pgbench scale | DB size | Clients | Time | TPS #1 | TPS #2 | TPS #3 | TPS #4 |
+| -------|------|-------------|----------------|-----------------|---------------|---------|---------|------|--------|--------|--------|--------|
+| Gabriele Bartolini | 2024-02-07 | EKS | 14 | 64GB | 3000 | 44GB | 16 | 300 | 3,510 | 5,143 | 1,665 | 1,797 |
 
 ## Conclusions
 
