@@ -75,7 +75,7 @@ kubectl cnpg pgbench --dry-run \
   --job-name pgbench-init-pgdata-only \
   --node-selector workload=pgbench \
   pgdata-only \
-  -- --initialize --fillfactor '80' --scale '3000' | kubectl apply -f -
+  -- --initialize --scale '3000' | kubectl apply -f -
 ```
 
 Then watch the progress with:
@@ -172,6 +172,9 @@ table](https://commitfest.postgresql.org/47/4679/), and it is not possible to
 automatically assign a partition to a given tablespace, I provide a modified
 schema of the `pgbench` database to have 8 hash partitions spread on 8
 different tablespaces. See: [pgbench-8tbs-schema.sql](pgbench-8tbs-schema.sql).
+
+*NOTE: It is worth noting that partitioning introduces a slight overhead in
+PostgreSQL and in smaller databases it might not improve performance.*
 
 Before you create the cluster, make sure that you create the configmap for the
 projected volume:

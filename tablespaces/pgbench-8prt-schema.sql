@@ -11,35 +11,35 @@ PARTITION BY HASH (aid);
 
 CREATE TABLE public.pgbench_accounts_1 (
     LIKE public.pgbench_accounts
-) TABLESPACE tbs1;
+);
 
 CREATE TABLE public.pgbench_accounts_2 (
     LIKE public.pgbench_accounts
-) TABLESPACE tbs2;
+);
 
 CREATE TABLE public.pgbench_accounts_3 (
     LIKE public.pgbench_accounts
-) TABLESPACE tbs3;
+);
 
 CREATE TABLE public.pgbench_accounts_4 (
     LIKE public.pgbench_accounts
-) TABLESPACE tbs4;
+);
 
 CREATE TABLE public.pgbench_accounts_5 (
     LIKE public.pgbench_accounts
-) TABLESPACE tbs5;
+);
 
 CREATE TABLE public.pgbench_accounts_6 (
     LIKE public.pgbench_accounts
-) TABLESPACE tbs6;
+);
 
 CREATE TABLE public.pgbench_accounts_7 (
     LIKE public.pgbench_accounts
-) TABLESPACE tbs7;
+);
 
 CREATE TABLE public.pgbench_accounts_8 (
     LIKE public.pgbench_accounts
-) TABLESPACE tbs8;
+);
 
 CREATE TABLE public.pgbench_branches (
     bid integer NOT NULL,
@@ -59,35 +59,35 @@ PARTITION BY HASH (aid);
 
 CREATE TABLE public.pgbench_history_1 (
     LIKE public.pgbench_history
-) TABLESPACE tbs1;
+);
 
 CREATE TABLE public.pgbench_history_2 (
     LIKE public.pgbench_history
-) TABLESPACE tbs2;
+);
 
 CREATE TABLE public.pgbench_history_3 (
     LIKE public.pgbench_history
-) TABLESPACE tbs3;
+);
 
 CREATE TABLE public.pgbench_history_4 (
     LIKE public.pgbench_history
-) TABLESPACE tbs4;
+);
 
 CREATE TABLE public.pgbench_history_5 (
     LIKE public.pgbench_history
-) TABLESPACE tbs5;
+);
 
 CREATE TABLE public.pgbench_history_6 (
     LIKE public.pgbench_history
-) TABLESPACE tbs6;
+);
 
 CREATE TABLE public.pgbench_history_7 (
     LIKE public.pgbench_history
-) TABLESPACE tbs7;
+);
 
 CREATE TABLE public.pgbench_history_8 (
     LIKE public.pgbench_history
-) TABLESPACE tbs8;
+);
 
 CREATE TABLE public.pgbench_tellers (
     tid integer NOT NULL,

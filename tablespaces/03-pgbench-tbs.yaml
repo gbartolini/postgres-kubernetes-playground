@@ -77,6 +77,7 @@ spec:
       # Enable pg_stat_statements
       pg_stat_statements.max: '10000'
       pg_stat_statements.track: 'all'
+      pg_stat_statements.track_planning: 'on'
 
       # Replication
       hot_standby_feedback: 'on'
