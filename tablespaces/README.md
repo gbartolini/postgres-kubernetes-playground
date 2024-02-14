@@ -35,9 +35,9 @@ the following steps:
 The benchmarking environment used for these tests was generated using the
 [AWK-AKS demo](https://github.com/gbartolini/postgres-kubernetes-playground/tree/main/aws-eks)
 presented at KubeCon NA in November 2023. Tests were conducted on Amazon EKS,
-utilizing the `r5.4xlarge` instance and the `ebs-sc` storage class. Manifests
-provided reflect these configurations; adjust them based on your storage class
-and available CPU/Memory resources.
+utilizing the `r5.large` (16GB) and `r5.4xlarge` (128GB) instances and the
+`ebs-sc` storage class. Manifests provided reflect these configurations; adjust
+them based on your storage class and available CPU/Memory resources.
 
 ## Before You Begin
 
@@ -75,7 +75,7 @@ kubectl cnpg pgbench --dry-run \
   --job-name pgbench-init-pgdata-only \
   --node-selector workload=pgbench \
   pgdata-only \
-  -- --initialize --scale '3000' | kubectl apply -f -
+  -- --initialize --scale '4500' | kubectl apply -f -
 ```
 
 Then watch the progress with:
@@ -113,7 +113,7 @@ kubectl logs jobs/pgbench-run-pgdata-only
 pgbench (16.1 (Debian 16.1-1.pgdg110+1))
 starting vacuum...end.
 transaction type: <builtin: TPC-B (sort of)>
-scaling factor: 3000
+scaling factor: 4500
 query mode: simple
 number of clients: 16
 number of threads: 8
@@ -151,7 +151,7 @@ kubectl cnpg pgbench --dry-run \
   --job-name pgbench-init-pgbench-tbs \
   --node-selector workload=pgbench \
   pgbench-tbs \
-  -- --initialize --tablespace data --index-tablespace idx --scale '3000' | kubectl apply -f -
+  -- --initialize --tablespace data --index-tablespace idx --scale '4500' | kubectl apply -f -
 ```
 
 Once the job completes, you can then run the `pgbench` job as usual, like this:
@@ -184,12 +184,12 @@ kubectl create configmap pgbench-sql --from-file pgbench-8tbs-schema.sql
 ```
 
 Open the [`04-pgbench-8tbs.yaml`](04-pgbench-8tbs.yaml) file, adapt it for
-your scope, and apply it to create the `pgbench-8tbs` cluster.
+your scope, and apply it to create the `eight-tbs` cluster.
 
 Connect to the PostgreSQL instance and create the schema, by running:
 
 ```
-kubectl exec -ti pgbench-8tbs-1 -- psql -f /projected/pgbench-8tbs-schema.sql
+kubectl exec -ti eight-tbs-1 -- psql -f /projected/pgbench-8tbs-schema.sql
 ```
 
 Then, generate the `pgbench` init job with (note the `--init-steps` and
@@ -200,18 +200,28 @@ kubectl cnpg pgbench --dry-run \
   --db-name pgbench \
   --job-name pgbench-init-8tbs \
   --node-selector workload=pgbench \
-  pgbench-8tbs \
-  -- --initialize --init-steps gv --partitions 8 --scale '3000' | kubectl apply -f -
+  eight-tbs \
+  -- --initialize --init-steps gv --partitions 8 --scale '4500' | kubectl apply -f -
 ```
 
 Then run the usual `pgbench` job.
 
 ## Results
 
+### Database larger than memory
+
 | Author             | Date       | Environment | Postgres cores | Postgres memory | pgbench scale | DB size | Clients | Time | TPS #1 | TPS #2 | TPS #3 | TPS #4 |
 | -------------------|------------|-------------|----------------|-----------------|---------------|---------|---------|------|--------|--------|--------|--------|
-| Gabriele Bartolini | 2024-02-07 | EKS         | 14             | 64GB            | 3000          | 44GB    | 16      | 300  | 3,510  | 5,143  | 1,665  | 1,797  |
-| Florian Coulombel  | 2024-02-12 | Baremetal v1.29.1<br/>PowerMax| 14 | 64GB      | 3000          | 44GB    | 16      | 300  | 8,881  | 8,780  | 7,347  | 8,625  |
+| Gabriele Bartolini | 2024-02-14 | EKS         | 1.5 (r5.large) | 14GB            | 4500          |    66GB | 4       | 300  |        | 554    |        |        |
+| Gabriele Bartolini | 2024-02-14 | EKS         | 1.5 (r5.large) | 14GB            | 4500          |    66GB | 8       | 300  |        | 889    |        |        |
+| Gabriele Bartolini | 2024-02-14 | EKS         | 1.5 (r5.large) | 14GB            | 4500          |    66GB | 16      | 300  | 1,109  | 1,272  | 1,476  | 1,387  |
+
+### Database fitting entirely in memory
+
+| Author             | Date       | Environment                   | Postgres cores  | Postgres memory | pgbench scale | DB size | Clients | Time | TPS #1 | TPS #2 | TPS #3 | TPS #4 |
+| -------------------|------------|-------------------------------|-----------------|-----------------|---------------|---------|---------|------|--------|--------|--------|--------|
+| Gabriele Bartolini | 2024-02-07 | EKS                           | 14 (r5.4xlarge) | 64GB            | 3000          |    44GB | 16      | 300  | 3,510  | 5,143  | 1,665  | 1,797  |
+| Florian Coulombel  | 2024-02-12 | Baremetal v1.29.1<br/>PowerMax| 14              | 64GB            | 3000          |    44GB | 16      | 300  | 8,881  | 8,780  | 7,347  | 8,625  |
 
 ## Conclusions
 

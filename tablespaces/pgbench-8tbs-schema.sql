@@ -116,21 +116,21 @@ ALTER TABLE ONLY public.pgbench_history ATTACH PARTITION public.pgbench_history_
 ALTER TABLE ONLY public.pgbench_accounts
     ADD CONSTRAINT pgbench_accounts_pkey PRIMARY KEY (aid);
 ALTER TABLE ONLY public.pgbench_accounts_1
-    ADD CONSTRAINT pgbench_accounts_1_pkey PRIMARY KEY (aid);
+    ADD CONSTRAINT pgbench_accounts_1_pkey PRIMARY KEY (aid) USING INDEX TABLESPACE tbs1;
 ALTER TABLE ONLY public.pgbench_accounts_2
-    ADD CONSTRAINT pgbench_accounts_2_pkey PRIMARY KEY (aid);
+    ADD CONSTRAINT pgbench_accounts_2_pkey PRIMARY KEY (aid) USING INDEX TABLESPACE tbs2;
 ALTER TABLE ONLY public.pgbench_accounts_3
-    ADD CONSTRAINT pgbench_accounts_3_pkey PRIMARY KEY (aid);
+    ADD CONSTRAINT pgbench_accounts_3_pkey PRIMARY KEY (aid) USING INDEX TABLESPACE tbs3;
 ALTER TABLE ONLY public.pgbench_accounts_4
-    ADD CONSTRAINT pgbench_accounts_4_pkey PRIMARY KEY (aid);
+    ADD CONSTRAINT pgbench_accounts_4_pkey PRIMARY KEY (aid) USING INDEX TABLESPACE tbs4;
 ALTER TABLE ONLY public.pgbench_accounts_5
-    ADD CONSTRAINT pgbench_accounts_5_pkey PRIMARY KEY (aid);
+    ADD CONSTRAINT pgbench_accounts_5_pkey PRIMARY KEY (aid) USING INDEX TABLESPACE tbs5;
 ALTER TABLE ONLY public.pgbench_accounts_6
-    ADD CONSTRAINT pgbench_accounts_6_pkey PRIMARY KEY (aid);
+    ADD CONSTRAINT pgbench_accounts_6_pkey PRIMARY KEY (aid) USING INDEX TABLESPACE tbs6;
 ALTER TABLE ONLY public.pgbench_accounts_7
-    ADD CONSTRAINT pgbench_accounts_7_pkey PRIMARY KEY (aid);
+    ADD CONSTRAINT pgbench_accounts_7_pkey PRIMARY KEY (aid) USING INDEX TABLESPACE tbs7;
 ALTER TABLE ONLY public.pgbench_accounts_8
-    ADD CONSTRAINT pgbench_accounts_8_pkey PRIMARY KEY (aid);
+    ADD CONSTRAINT pgbench_accounts_8_pkey PRIMARY KEY (aid) USING INDEX TABLESPACE tbs8;
 ALTER TABLE ONLY public.pgbench_branches
     ADD CONSTRAINT pgbench_branches_pkey PRIMARY KEY (bid);
 ALTER TABLE ONLY public.pgbench_tellers
