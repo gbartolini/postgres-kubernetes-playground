@@ -282,9 +282,10 @@ ORDER BY 1,2;
 
 ### Database fitting entirely in memory
 
-| Author             | Date       | Environment | Postgres cores  | Postgres memory | pgbench scale | DB size | Clients | Time | TPS #1 | TPS #2 | TPS #3 | TPS #4 |
-| -------------------|------------|-------------|-----------------|-----------------|---------------|---------|---------|------|--------|--------|--------|--------|
-| Gabriele Bartolini | 2024-02-07 | EKS         | 14 (r5.4xlarge) | 64GB            | 3000          |    44GB | 16      | 300  | 3,510  | 5,143  | 1,665  | 1,797  |
+| Author             | Date       | Environment                   | Postgres cores  | Postgres memory | pgbench scale | DB size | Clients | Time | TPS #1 | TPS #2 | TPS #3 | TPS #4 |
+| -------------------|------------|-------------------------------|-----------------|-----------------|---------------|---------|---------|------|--------|--------|--------|--------|
+| Gabriele Bartolini | 2024-02-07 | EKS                           | 14 (r5.4xlarge) | 64GB            | 3000          |    44GB | 16      | 300  | 3,510  | 5,143  | 1,665  | 1,797  |
+| Florian Coulombel  | 2024-02-12 | Baremetal v1.29.1<br/>PowerMax| 14              | 64GB            | 3000          |    44GB | 16      | 300  | 8,881  | 8,780  | 7,347  | 8,625  |
 
 ## Conclusions
 
