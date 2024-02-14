@@ -105,6 +105,10 @@ kubectl cnpg pgbench --dry-run \
   -- --time 300 --client 16 --jobs 8 | kubectl apply -f -
 ```
 
+*Note that the above test simulates 16 concurrent connections to PostgreSQL. You
+can run the test with a different number of clients (`--client 8 --jobs 4` for
+8 clients).*
+
 Then collect the results:
 
 ```sh
