@@ -14,11 +14,11 @@ spec:
   # Request Guaranteed QoS
   resources:
     requests:
-      memory: '64Gi'
-      cpu: 14
+      memory: '14Gi'
+      cpu: 1.5
     limits:
-      memory: '64Gi'
-      cpu: 14
+      memory: '14Gi'
+      cpu: 1.5
 
   # Volume with PGDATA
   storage:
@@ -86,9 +86,9 @@ spec:
       max_connections: '100'
 
       # Memory configuration
-      shared_buffers: '8GB'
+      shared_buffers: '4GB'
       maintenance_work_mem: '1GB'
-      effective_cache_size: '56GB'
+      effective_cache_size: '13GB'
       shared_memory_type: 'sysv'
       dynamic_shared_memory_type: 'sysv'
 
