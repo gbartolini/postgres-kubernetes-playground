@@ -23,11 +23,11 @@ spec:
   # Volume with PGDATA
   storage:
     storageClass: ebs-sc
-    size: 100Gi
+    size: 800Gi
 
   walStorage:
     storageClass: ebs-sc
-    size: 20Gi
+    size: 200Gi
 
   # Cluster initialization
   bootstrap:

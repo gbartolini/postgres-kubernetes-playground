@@ -23,45 +23,45 @@ spec:
   # Volume with PGDATA
   storage:
     storageClass: ebs-sc
-    size: 20Gi
+    size: 100Gi
 
   walStorage:
     storageClass: ebs-sc
-    size: 20Gi
+    size: 200Gi
 
   tablespaces:
     - name: tbs1
       storage:
         storageClass: ebs-sc
-        size: 10Gi
+        size: 100Gi
     - name: tbs2
       storage:
         storageClass: ebs-sc
-        size: 10Gi
+        size: 100Gi
     - name: tbs3
       storage:
         storageClass: ebs-sc
-        size: 10Gi
+        size: 100Gi
     - name: tbs4
       storage:
         storageClass: ebs-sc
-        size: 10Gi
+        size: 100Gi
     - name: tbs5
       storage:
         storageClass: ebs-sc
-        size: 10Gi
+        size: 100Gi
     - name: tbs6
       storage:
         storageClass: ebs-sc
-        size: 10Gi
+        size: 100Gi
     - name: tbs7
       storage:
         storageClass: ebs-sc
-        size: 10Gi
+        size: 100Gi
     - name: tbs8
       storage:
         storageClass: ebs-sc
-        size: 10Gi
+        size: 100Gi
 
   projectedVolumeTemplate:
     sources:

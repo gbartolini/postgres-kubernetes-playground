@@ -78,6 +78,9 @@ kubectl cnpg pgbench --dry-run \
   -- --initialize --scale '4500' | kubectl apply -f -
 ```
 
+*Note that we should initialize also with larger scales to reduce the risk of
+memory caching.*
+
 Then watch the progress with:
 
 ```sh
@@ -210,6 +213,60 @@ kubectl cnpg pgbench --dry-run \
 
 Then run the usual `pgbench` job.
 
+## Useful queries
+
+You can run the following queries to get an idea of tables, indexes,
+tablespaces, size, etc.
+
+Connect to the `pgbench` database via the `kubectl exec` command on the primary
+pod:
+
+```sh
+kubectl exec -ti eight-tbs-1 -- psql pgbench
+```
+
+### Tables information
+
+```sql
+SELECT
+  c.relname AS table_name,
+  CASE c.relkind WHEN 'r' THEN 'table' WHEN 'v' THEN 'view' WHEN 'm' THEN 'materialized view' WHEN 'i' THEN 'index' WHEN 'S' THEN 'sequence' WHEN 't' THEN 'TOAST table' WHEN 'f' THEN 'foreign table' WHEN 'p' THEN 'partitioned table' WHEN 'I' THEN 'partitioned index' END AS table_type,
+  tbs.spcname as table_tablespace,
+  pg_catalog.pg_size_pretty(pg_catalog.pg_table_size(c.oid)) AS table_size
+FROM pg_catalog.pg_class c
+  LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+  LEFT JOIN pg_catalog.pg_tablespace tbs ON c.reltablespace = tbs.oid
+  LEFT JOIN pg_catalog.pg_index i ON i.indexrelid = c.oid
+WHERE c.relkind IN ('r','t','p', '')
+  AND n.nspname <> 'pg_catalog'
+  AND n.nspname !~ '^pg_toast'
+  AND n.nspname <> 'information_schema'
+  AND pg_catalog.pg_table_is_visible(c.oid)
+ORDER BY 1,2;
+```
+
+### Indexes information
+
+```sql
+SELECT
+  c.relname AS idx_name,
+  t.relname as idx_table,
+  tbs.spcname as idx_tablespace,
+  pg_catalog.pg_size_pretty(pg_catalog.pg_table_size(c.oid)) AS idx_size
+FROM pg_catalog.pg_class c
+  LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+  LEFT JOIN pg_catalog.pg_tablespace tbs ON c.reltablespace = tbs.oid
+  LEFT JOIN pg_catalog.pg_index i ON i.indexrelid = c.oid
+  LEFT JOIN pg_catalog.pg_class t ON i.indrelid = t.oid
+WHERE c.relkind IN ('i','I','')
+  AND n.nspname <> 'pg_catalog'
+  AND n.nspname !~ '^pg_toast'
+  AND n.nspname <> 'information_schema'
+  AND pg_catalog.pg_table_is_visible(c.oid)
+ORDER BY 1,2;
+```
+
+
 ## Results
 
 ### Database larger than memory
@@ -219,6 +276,9 @@ Then run the usual `pgbench` job.
 | Gabriele Bartolini | 2024-02-14 | EKS         | 1.5 (r5.large) | 14GB            | 4500          |    66GB | 4       | 300  |        |   554  |   637  | 1,070  |
 | Gabriele Bartolini | 2024-02-14 | EKS         | 1.5 (r5.large) | 14GB            | 4500          |    66GB | 8       | 300  |        |   889  | 1,157  | 1,441  |
 | Gabriele Bartolini | 2024-02-14 | EKS         | 1.5 (r5.large) | 14GB            | 4500          |    66GB | 16      | 300  | 1,109  | 1,272  | 1,476  | 1,403  |
+| Gabriele Bartolini | 2024-02-19 | EKS         | 1.5 (r5.large) | 14GB            | 45000         |   657GB | 4       | 300  |        |   819  |        |   522  |
+| Gabriele Bartolini | 2024-02-19 | EKS         | 1.5 (r5.large) | 14GB            | 45000         |   657GB | 8       | 300  |        |   822  |        |   963  |
+| Gabriele Bartolini | 2024-02-15 | EKS         | 1.5 (r5.large) | 14GB            | 45000         |   657GB | 16      | 300  |        | 1,244  |        | 1,293  |
 
 ### Database fitting entirely in memory
 
