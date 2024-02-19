@@ -271,14 +271,15 @@ ORDER BY 1,2;
 
 ### Database larger than memory
 
-| Author             | Date       | Environment | Postgres cores | Postgres memory | pgbench scale | DB size | Clients | Time | TPS #1 | TPS #2 | TPS #3 | TPS #4 |
-| -------------------|------------|-------------|----------------|-----------------|---------------|---------|---------|------|--------|--------|--------|--------|
-| Gabriele Bartolini | 2024-02-14 | EKS         | 1.5 (r5.large) | 14GB            | 4500          |    66GB | 4       | 300  |        |   554  |   637  | 1,070  |
-| Gabriele Bartolini | 2024-02-14 | EKS         | 1.5 (r5.large) | 14GB            | 4500          |    66GB | 8       | 300  |        |   889  | 1,157  | 1,441  |
-| Gabriele Bartolini | 2024-02-14 | EKS         | 1.5 (r5.large) | 14GB            | 4500          |    66GB | 16      | 300  | 1,109  | 1,272  | 1,476  | 1,403  |
-| Gabriele Bartolini | 2024-02-19 | EKS         | 1.5 (r5.large) | 14GB            | 45000         |   657GB | 4       | 300  |        |   819  |        |   522  |
-| Gabriele Bartolini | 2024-02-19 | EKS         | 1.5 (r5.large) | 14GB            | 45000         |   657GB | 8       | 300  |        |   822  |        |   963  |
-| Gabriele Bartolini | 2024-02-15 | EKS         | 1.5 (r5.large) | 14GB            | 45000         |   657GB | 16      | 300  |        | 1,244  |        | 1,293  |
+| Author             | Date       | Environment                               | Postgres cores | Postgres memory | pgbench scale | DB size | Clients | Time | TPS #1 | TPS #2 | TPS #3 | TPS #4 |
+| -------------------|------------|-------------------------------------------|----------------|-----------------|---------------|---------|---------|------|--------|--------|--------|--------|
+| Gabriele Bartolini | 2024-02-14 | EKS                                       | 1.5 (r5.large) | 14GB            | 4500          |    66GB | 4       | 300  |        |   554  |   637  | 1,070  |
+| Gabriele Bartolini | 2024-02-14 | EKS                                       | 1.5 (r5.large) | 14GB            | 4500          |    66GB | 8       | 300  |        |   889  | 1,157  | 1,441  |
+| Gabriele Bartolini | 2024-02-14 | EKS                                       | 1.5 (r5.large) | 14GB            | 4500          |    66GB | 16      | 300  | 1,109  | 1,272  | 1,476  | 1,403  |
+| Gabriele Bartolini | 2024-02-19 | EKS                                       | 1.5 (r5.large) | 14GB            | 45000         |   657GB | 4       | 300  |        |   819  |        |   522  |
+| Gabriele Bartolini | 2024-02-19 | EKS                                       | 1.5 (r5.large) | 14GB            | 45000         |   657GB | 8       | 300  |        |   822  |        |   963  |
+| Gabriele Bartolini | 2024-02-15 | EKS                                       | 1.5 (r5.large) | 14GB            | 45000         |   657GB | 16      | 300  |        | 1,244  |        | 1,293  |
+| Jonathan Battiato  | 2024-02-19 | k3s 1.28.6<br/>on 4 RPi4<br/>SSD+Longhorn | 1.5            |  4GB            | 4500          |    66GB | 16      | 300  | 222    | 218    |        |        |
 
 ### Database fitting entirely in memory
 
