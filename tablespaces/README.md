@@ -276,6 +276,7 @@ ORDER BY 1,2;
 | Gabriele Bartolini | 2024-02-14 | EKS         | 1.5 (r5.large) | 14GB            | 4500          |    66GB | 4       | 300  |        |   554  |   637  | 1,070  |
 | Gabriele Bartolini | 2024-02-14 | EKS         | 1.5 (r5.large) | 14GB            | 4500          |    66GB | 8       | 300  |        |   889  | 1,157  | 1,441  |
 | Gabriele Bartolini | 2024-02-14 | EKS         | 1.5 (r5.large) | 14GB            | 4500          |    66GB | 16      | 300  | 1,109  | 1,272  | 1,476  | 1,403  |
+| Florian Coulombel  | 2024-02-15 | Baremetal v1.29.1<br/>PowerMax| Xeon 4216 @ 2.10GHz | 14GB | 4500 | 66GB | 16      | 300  | 2,085  | 2,085  | 2,059  | 2,022  |
 | Gabriele Bartolini | 2024-02-19 | EKS         | 1.5 (r5.large) | 14GB            | 45000         |   657GB | 4       | 300  |        |   819  |        |   522  |
 | Gabriele Bartolini | 2024-02-19 | EKS         | 1.5 (r5.large) | 14GB            | 45000         |   657GB | 8       | 300  |        |   822  |        |   963  |
 | Gabriele Bartolini | 2024-02-15 | EKS         | 1.5 (r5.large) | 14GB            | 45000         |   657GB | 16      | 300  |        | 1,244  |        | 1,293  |
