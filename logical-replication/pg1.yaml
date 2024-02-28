@@ -1,0 +1,45 @@
+apiVersion: v1
+data:
+  password: QW5ndXNZb3VuZzE5NTU=
+  username: YW5ndXM=
+kind: Secret
+metadata:
+  name: angus
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg1
+spec:
+  imageName: ghcr.io/cloudnative-pg/postgresql:14
+  instances: 1
+
+  storage:
+    size: 1Gi
+
+  bootstrap:
+    initdb:
+      dataChecksums: true
+      walSegmentSize: 32
+      postInitApplicationSQL:
+      - CREATE TABLE songs (id SERIAL PRIMARY KEY, title TEXT)
+      - ALTER TABLE songs OWNER TO app
+      - INSERT INTO songs(title) VALUES ('Back in black')
+      - CREATE PUBLICATION migrate FOR TABLE songs
+
+  managed:
+    roles:
+    - name: angus
+      ensure: present
+      comment: User for logical replication connections
+      login: true
+      replication: true
+      inRoles:
+      - app
+      passwordSecret:
+        name: angus
+
+  postgresql:
+    pg_hba:
+    - hostssl replication angus 10.0.0.0/8 md5
+
