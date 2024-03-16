@@ -2,8 +2,11 @@ apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
   name: pgdata-wal
+  annotations:
+    #cnpg.io/skipWalArchiving: 'enabled'
 spec:
   imageName: ghcr.io/cloudnative-pg/postgresql:16
+  imagePullPolicy: Always
 
   instances: 1
 
@@ -40,6 +43,11 @@ spec:
   # PostgreSQL configuration
   postgresql:
     parameters:
+
+      #fsync: 'off'
+      #max_wal_senders: '0'
+      #wal_level: 'minimal'
+
       # Connections
       max_connections: '100'
 

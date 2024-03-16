@@ -54,6 +54,40 @@ The general test procedure involves:
 2. Running the initialization process of `pgbench` with desired scale.
 3. Running `pgbench` OLTP-like processes for a given time, collecting relevant metrics.
 
+### Initial loading optimizations
+
+If you intend to conduct benchmarks on larger scales, optimizing the PostgreSQL
+database for speed over consistency during the initial loading phase can
+significantly enhance performance (I have observed 30% gains).
+
+During this initialization process, consider implementing at least the
+following adjustments:
+
+- Temporarily disabling Write-Ahead Logging (WAL) archiving.
+- Turning off synchronous writes (`fsync`).
+- Lowering the WAL level to 'minimal' and setting `max_wal_senders` to `0`.
+
+```yaml
+apiVersion: postgresql.cnpg.io/v1
+ kind: Cluster
+ metadata:
+   name: pgdata-wal
+  annotations:
+    cnpg.io/skipWalArchiving: 'enabled'
+ spec:
+   # ...
+   postgresql:
+     parameters:
+       fsync: 'off'
+       max_wal_senders: '0'
+       wal_level: 'minimal'
+```
+
+Once the initialization phase concludes, it's imperative to revisit these
+settings. Make sure to carefully revert the changes, taking into account that
+the database may require time to properly shut down and flush the cache before
+modifications can be applied to the cluster.
+
 ## Example Tests
 
 ### Test #1 - PGDATA Only
@@ -271,17 +305,19 @@ ORDER BY 1,2;
 
 ### Database larger than memory
 
-| Author             | Date       | Environment | Postgres cores | Postgres memory | pgbench scale | DB size | Clients | Time | TPS #1 | TPS #2 | TPS #3 | TPS #4 |
-| -------------------|------------|-------------|----------------|-----------------|---------------|---------|---------|------|--------|--------|--------|--------|
-| Gabriele Bartolini | 2024-02-14 | EKS         | 1.5 (r5.large) | 14GB            | 4500          |    66GB | 4       | 300  |        |   554  |   637  | 1,070  |
-| Gabriele Bartolini | 2024-02-14 | EKS         | 1.5 (r5.large) | 14GB            | 4500          |    66GB | 8       | 300  |        |   889  | 1,157  | 1,441  |
-| Gabriele Bartolini | 2024-02-14 | EKS         | 1.5 (r5.large) | 14GB            | 4500          |    66GB | 16      | 300  | 1,109  | 1,272  | 1,476  | 1,403  |
-| Florian Coulombel  | 2024-02-15 | Baremetal v1.29.1<br/>PowerMax| Xeon 4216 @ 2.10GHz | 14GB | 4500 | 66GB | 16      | 300  | 2,085  | 2,085  | 2,059  | 2,022  |
-| Gabriele Bartolini | 2024-02-19 | EKS         | 1.5 (r5.large) | 14GB            | 45000         |   657GB | 4       | 300  |        |   819  |        |   522  |
-| Gabriele Bartolini | 2024-02-19 | EKS         | 1.5 (r5.large) | 14GB            | 45000         |   657GB | 8       | 300  |        |   822  |        |   963  |
-| Gabriele Bartolini | 2024-02-15 | EKS         | 1.5 (r5.large) | 14GB            | 45000         |   657GB | 16      | 300  |        | 1,244  |        | 1,293  |
-| Jonathan Battiato  | 2024-02-19 | k3s 1.28.6<br/>on 4 RPi4<br/>SSD+Longhorn   | 1.5            |  4GB            | 4500          |    66GB | 16      | 300  | 222    | 218    |        |        |
-| Jonathan Battiato  | 2024-02-20 | k3s 1.28.6<br/>on 4 RPi4<br/>SSD+local-path | 1.5            |  4GB            | 4500          |    66GB | 16      | 300  | 246    | 245    |        |        |
+| Author             | Date       | Environment                                            | Postgres cores | Postgres memory | pgbench scale | DB size | Clients | Time | TPS #1 | TPS #2 | TPS #3 | TPS #4 |
+| -------------------|------------|--------------------------------------------------------|----------------|-----------------|---------------|---------|---------|------|--------|--------|--------|--------|
+| Gabriele Bartolini | 2024-02-14 | EKS (r5.large)                                         | 1.5            | 14GB            | 4500          |    66GB | 4       | 300  |        |   554  |   637  | 1,070  |
+| Gabriele Bartolini | 2024-02-14 | EKS (r5.large)                                         | 1.5            | 14GB            | 4500          |    66GB | 8       | 300  |        |   889  | 1,157  | 1,441  |
+| Gabriele Bartolini | 2024-02-14 | EKS (r5.large)                                         | 1.5            | 14GB            | 4500          |    66GB | 16      | 300  | 1,109  | 1,272  | 1,476  | 1,403  |
+| Florian Coulombel  | 2024-02-15 | Baremetal v1.29.1<br/>PowerMax<br/>Xeon 4216 @ 2.10GHz | 1.5            | 14GB            | 4500          |    66GB | 16      | 300  | 2,085  | 2,085  | 2,059  | 2,022  |
+| Gabriele Bartolini | 2024-02-19 | EKS (r5.large)                                         | 1.5            | 14GB            | 45000         |   657GB | 4       | 300  |        |   819  |        |   522  |
+| Gabriele Bartolini | 2024-02-19 | EKS (r5.large)                                         | 1.5            | 14GB            | 45000         |   657GB | 8       | 300  |        |   822  |        |   963  |
+| Gabriele Bartolini | 2024-02-15 | EKS (r5.large)                                         | 1.5            | 14GB            | 45000         |   657GB | 16      | 300  |        | 1,244  |        | 1,293  |
+| Jonathan Battiato  | 2024-02-19 | k3s 1.28.6<br/>on 4 RPi4<br/>SSD+Longhorn              | 1.5            |  4GB            | 4500          |    66GB | 16      | 300  | 222    | 218    |        |        |
+| Jonathan Battiato  | 2024-02-20 | k3s 1.28.6<br/>on 4 RPi4<br/>SSD+local-path            | 1.5            |  4GB            | 4500          |    66GB | 16      | 300  | 246    | 245    |        |        |
+| Matthew Cary       | 2024-03-15 | GKE (n2-standard-16, pd-balanced)                      | 1.5            | 14GB            | 4500          |    66GB | 16      | 300  | 1,250  | 1,485  | 1,252  | 1,343  |
+| Matthew Cary       | 2024-03-15 | GKE (n2-standard-16, pd-ssd)                           | 1.5            | 14GB            | 4500          |    66GB | 16      | 300  | -      | 1,531  | 1,495  | 1,338  |
 
 ### Database fitting entirely in memory
 
