@@ -48,6 +48,9 @@ spec:
       walSegmentSize: 64
       postInitSQL:
         - CREATE DATABASE pgbench OWNER app
+  replica:
+    enabled: false
+    source: @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@
 
   # PostgreSQL configuration
   postgresql:
