@@ -82,7 +82,7 @@ spec:
 
       # Replication
       hot_standby_feedback: 'on'
-      max_slot_wal_keep_size: '8GB' # Not yet supported
+      max_slot_wal_keep_size: '8GB'
 
   monitoring:
     enablePodMonitor: true
