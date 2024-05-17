@@ -30,7 +30,9 @@ installed in your system
 
 Once you have ensured access to AWS is working, run:
 
-    ./deploy.sh
+```shell
+./deploy.sh
+```
 
 Then wait (this can take between 30 minutes to an hour).
 
@@ -115,6 +117,25 @@ To permanently delete the playground, run:
 
     ./teardown.sh
 
+## Volume snapshots
+
+In order to use volume snapshots, you need to follow the instructions you find
+
+The deployment script already installs the CRDs, the snapshot controller, the
+`VolumeSnapshotClass` and the `ebs-sc` `StorageClass`, through the following
+instructions taken from the
+[Amazon Elastic Block Store Container Storage Interface](https://github.com/kubernetes-sigs/aws-ebs-csi-driver/tree/master/examples/kubernetes/snapshot)
+project:
+
+```bash
+kubectl kustomize https://github.com/kubernetes-csi/external-snapshotter//client/config/crd | kubectl apply -f -
+kubectl -n kube-system kustomize https://github.com/kubernetes-csi/external-snapshotter//deploy/kubernetes/snapshot-controller | kubectl apply -f -
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-ebs-csi-driver/master/examples/kubernetes/snapshot/manifests/classes/snapshotclass.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-ebs-csi-driver/master/examples/kubernetes/snapshot/manifests/classes/storageclass.yaml
+```
+
+All you need to do is use the `ebs-sc` storage class in the Postgres volumes.
+
 ## Enjoy CloudNativePG
 
 You now have two separate Kubernetes clusters. The `cloudnative-pg` folder
@@ -162,6 +183,18 @@ alertmanager:
   alertManagerSpec:
     nodeSelector:
       workload: monitor
+```
+
+The `cloudnative-pg/kubestack.yaml` file should be ready to work with your deployment.
+You can simply run:
+
+```
+helm repo add prometheus-community \
+  https://prometheus-community.github.io/helm-charts
+
+helm upgrade --install -f cloudnative-pg/kubestack.yaml \
+  prometheus-community \
+  prometheus-community/kube-prometheus-stack
 ```
 
 ## Accessing the S3 buckets

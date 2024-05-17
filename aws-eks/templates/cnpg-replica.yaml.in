@@ -82,7 +82,7 @@ spec:
 
       # Replication
       hot_standby_feedback: 'on'
-      max_slot_wal_keep_size: '8GB'
+      max_slot_wal_keep_size: '9GB'
 
   monitoring:
     enablePodMonitor: true

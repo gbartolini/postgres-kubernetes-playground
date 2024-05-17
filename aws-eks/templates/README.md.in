@@ -30,7 +30,9 @@ installed in your system
 
 Once you have ensured access to AWS is working, run:
 
-    ./deploy.sh
+```shell
+./deploy.sh
+```
 
 Then wait (this can take between 30 minutes to an hour).
 
