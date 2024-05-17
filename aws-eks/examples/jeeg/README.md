@@ -237,6 +237,38 @@ Then, you can run a benchmark like the very simple one here:
       jeeg-eu-central-1 \
       -- --time 30 --client 1 --jobs 1
 
+## Demoting jeeg-eu-central-1
+
+You can simulate a data centre switchover by demoting the primary first. All you need to do is change:
+
+```yaml
+  replica:
+    enabled: false
+```
+
+into:
+
+```yaml
+  replica:
+    enabled: true
+```
+
+Once the operation is completed, the
+jeeg-eu-central-1 PostgreSQL cluster is set as a
+replica of `jeeg-eu-west-1` and will wait for
+new WAL files appearing in the remote object store.
+
+## Promoting jeeg-eu-west-1
+
+Now that the jeeg-eu-central-1 cluster has been
+demoted, you need to make the opposite change to the
+jeeg-eu-west-1 cluster and set
+`replica.enabled`to `false`.
+
+The cluster will start serving read-write operations and push WAL files in the
+buckets, which will be ultimately consumed by the
+jeeg-eu-central-1 replica cluster.
+
 ## Notes
 
 This file and the other ones in the `jeeg` folder have been automatically
