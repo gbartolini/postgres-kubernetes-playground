@@ -1,102 +1,101 @@
-# CloudNativePG demonstration cluster in EKS
+# CloudNativePG Demonstration Cluster in EKS
 
-In this folder you will find details on how to create a very simple playground
-for CloudNativePG spread across 2 regions:
+This folder contains instructions on creating a simple CloudNativePG playground
+spread across two regions:
 
-- Primary EKS cluster  : `jeeg-eu-central-1` (region: `eu-central-1`)
-- Secondary EKS cluster: `jeeg-eu-west-1` (region: `eu-west-1`)
+- **Primary EKS Cluster**: `jeeg-eu-central-1` (Region: `eu-central-1`)
+- **Secondary EKS Cluster**: `jeeg-eu-west-1` (Region: `eu-west-1`)
 
-Each EKS cluster has:
+Each EKS cluster includes:
 
-- 3 worker nodes for Postgres, in 3 different availability zones (with label `workload=postgres`)
-- 1 worker nodes for Prometheus and Grafana (with label `workload=monitor`)
-- 1 worker nodes for `pgbench` (with label `workload=pgbench`)
+- 3 worker nodes for PostgreSQL in 3 different availability zones (label:
+  `workload=postgres`)
+- 1 worker node for Prometheus and Grafana (label: `workload=monitor`)
+- 1 worker node for `pgbench` (label: `workload=pgbench`)
 
-There's also an S3 bucket for base backups and the WAL archive in each region:
-each object store is writable by the local cluster, and can be read by the
-other one (this is needed to demonstrate a replica cluster in the other region
-that only uses the object store to be synchronized).
+Additionally, each region has an S3 bucket for base backups and WAL archives.
+These object stores are writable by their local clusters and readable by the
+other cluster to demonstrate replication using the object store.
 
-> **IMPORTANT:** the EKS clusters created as part of this playground are
-> intended to be disposable and should not be used in production environments.
+> **IMPORTANT:** The EKS clusters created in this playground are disposable and
+> should not be used in production environments.
 
 ## Prerequisites
 
-- [AWS Command Line Interface](https://aws.amazon.com/cli/) correctly
-installed in your system
-- Enough privileges to create resources in EKS
+- [AWS Command Line Interface](https://aws.amazon.com/cli/) correctly installed
+- Sufficient privileges to create resources in EKS
 
-## How to deploy the playground
+## How to Deploy the Playground
 
-Once you have ensured access to AWS is working, run:
+Once AWS access is confirmed, run:
 
 ```shell
 ./deploy.sh
 ```
 
-Then wait (this can take between 30 minutes to an hour).
+This process may take 30 minutes to an hour. After deployment, ensure the nodes
+are up and running with the correct labels.
 
-At this point, you should have the two EKS clusters and the object stores
-properly set up. Make sure the nodes are up and running and the labels
-are correctly set, as explained in the next section.
+## Verify EKS Nodes
 
-## Verify EKS nodes
+First, verify the nodes in the `eu-central-1` region cluster:
 
-To start with, verify that all the nodes you need are in the `eu-central-1` region cluster.
+Switch `kubectl` to `jeeg-eu-central-1`:
 
-First, switch `kubectl` to jeeg-eu-central-1 (save this command!):
-
-    aws eks update-kubeconfig --region eu-central-1 --name jeeg-eu-central-1
+```shell
+aws eks update-kubeconfig --region eu-central-1 --name jeeg-eu-central-1
+```
 
 Then run:
 
-    kubectl get nodes -L topology.kubernetes.io/zone,node.kubernetes.io/instance-type,workload
+```shell
+kubectl get nodes -L topology.kubernetes.io/zone,node.kubernetes.io/instance-type,workload
+```
 
-You should get something similar to this:
+You should see output similar to this:
 
-    NAME                                             STATUS   ROLES    AGE  VERSION               ZONE            INSTANCE-TYPE   WORKLOAD
-    ip-192-168-XX-XX.eu-central-1.compute.internal   Ready    <none>   1m   v1.26.4-eks-VVVVVVV   eu-central-1c   r5.large        postgres
-    ip-192-168-XX-XX.eu-central-1.compute.internal   Ready    <none>   1m   v1.26.4-eks-VVVVVVV   eu-central-1a   m5.large        pgbench
-    ip-192-168-XX-XX.eu-central-1.compute.internal   Ready    <none>   1m   v1.26.4-eks-VVVVVVV   eu-central-1a   r5.large        postgres
-    ip-192-168-XX-XX.eu-central-1.compute.internal   Ready    <none>   1m   v1.26.4-eks-VVVVVVV   eu-central-1a   m5.large        monitor
-    ip-192-168-XX-XX.eu-central-1.compute.internal   Ready    <none>   1m   v1.26.4-eks-VVVVVVV   eu-central-1b   r5.large        postgres
+```shell
+NAME                                            STATUS   ROLES    AGE  VERSION               ZONE            INSTANCE-TYPE   WORKLOAD
+ip-192-168-XX-XX.eu-central-1.compute.internal   Ready    <none>   1m   v1.29.5-eks-VVVVVVV   eu-central-1c   r5.large        postgres
+ip-192-168-XX-XX.eu-central-1.compute.internal   Ready    <none>   1m   v1.29.5-eks-VVVVVVV   eu-central-1a   m5.large        pgbench
+ip-192-168-XX-XX.eu-central-1.compute.internal   Ready    <none>   1m   v1.29.5-eks-VVVVVVV   eu-central-1a   r5.large        postgres
+ip-192-168-XX-XX.eu-central-1.compute.internal   Ready    <none>   1m   v1.29.5-eks-VVVVVVV   eu-central-1a   m5.large        monitor
+ip-192-168-XX-XX.eu-central-1.compute.internal   Ready    <none>   1m   v1.29.5-eks-VVVVVVV   eu-central-1b   r5.large        postgres
+```
 
-Now, switch `kubectl` to the jeeg-eu-west-1 cluster (save this too!):
+Next, switch `kubectl` to the `jeeg-eu-west-1`
+cluster:
 
-    aws eks update-kubeconfig --region eu-west-1 --name jeeg-eu-west-1
+```shell
+aws eks update-kubeconfig --region eu-west-1 --name jeeg-eu-west-1
+```
 
-and run again:
+And run again:
 
-    kubectl get nodes -L topology.kubernetes.io/zone,node.kubernetes.io/instance-type,workload
+```shell
+kubectl get nodes -L topology.kubernetes.io/zone,node.kubernetes.io/instance-type,workload
+```
 
-## How to retrieve the ARN for IRSA (required by backups)
+## Retrieve the ARN for IRSA (Required for Backups)
 
-> **IMPORTANT:** This section is critical to setup the backup infrastructure
-> for both regions, so you need to pay careful attention to this.
+> **IMPORTANT:** This section is critical for setting up the backup
+> infrastructure in both regions.
 
-[CloudNativePG supports IRSA](https://cloudnative-pg.io/documentation/current/backup_recovery/#iam-role-for-service-account-irsa),
-which stands for "IAM Role for Service Account", to authorize access to an
-object store using the workload identity of a running Postgres cluster, without
-having to provide any credentials, as describe in the
+CloudNativePG supports IRSA (IAM Role for Service Account), allowing access to
+an object store using the workload identity of a running PostgreSQL cluster
+without credentials.
 
-The main idea is that the Postgres cluster in `jeeg-eu-central-1`
-needs to write in the local `jeeg-eu-central-1` S3
-bucket, and (potentially) to read from the `jeeg-eu-west-1` bucket.
+To authorise access to the S3 buckets for WAL archiving and backup:
 
-Symmetrically, the Postgres cluster in `jeeg-eu-west-1` (which starts as a replica cluster) needs to write in the local `jeeg-eu-west-1` S3
-bucket, and (at least initially) to read from the `jeeg-eu-central-1` bucket.
+```shell
+eksctl --region eu-central-1 --cluster jeeg-eu-central-1 get iamserviceaccount jeeg-eu-central-1 -o json | jq '.[0].status.roleARN'
+eksctl --region eu-west-1 --cluster jeeg-eu-west-1 get iamserviceaccount jeeg-eu-west-1 -o json | jq '.[0].status.roleARN'
+```
 
-You can retrieve the ARNs to set workload identity authorization with the
-respective S3 buckets for WAL archiving and backup with:
+### IRSA Permissions
 
-    eksctl --region eu-central-1 --cluster jeeg-eu-central-1 get iamserviceaccount jeeg-eu-central-1 -o json | jq '.[0].status.roleARN'
-    eksctl --region eu-west-1 --cluster jeeg-eu-west-1 get iamserviceaccount jeeg-eu-west-1 -o json | jq '.[0].status.roleARN'
-
-### There's more ...
-
-IRSA allows us to set this permission in a IAM service account that we can
-later specify in the CloudNativePG `cluster` definition. Specifically, each IAM
-has the following permissions in the local object store:
+Each IAM service account has the following permissions in the local object
+store:
 
 - `s3:AbortMultipartUpload`
 - `s3:DeleteObject`
@@ -105,27 +104,25 @@ has the following permissions in the local object store:
 - `s3:PutObject`
 - `s3:PutObjectTagging`
 
-At the same time, it has the following read-only permissions for the S3 bucket
-in the other region:
+For the remote object store, the permissions are:
 
 - `s3:GetObject`
 - `s3:ListBucket`
 
-## How to tear down the playground
+## How to Tear Down the Playground
 
-To permanently delete the playground, run:
+To delete the playground, run:
 
-    ./teardown.sh
+```shell
+./teardown.sh
+```
 
-## Volume snapshots
+## Volume Snapshots
 
-In order to use volume snapshots, you need to follow the instructions you find
+To use volume snapshots, follow the instructions in the
+[AWS EBS CSI driver project](https://github.com/kubernetes-sigs/aws-ebs-csi-driver/tree/master/examples/kubernetes/snapshot).
 
-The deployment script already installs the CRDs, the snapshot controller, the
-`VolumeSnapshotClass` and the `ebs-sc` `StorageClass`, through the following
-instructions taken from the
-[Amazon Elastic Block Store Container Storage Interface](https://github.com/kubernetes-sigs/aws-ebs-csi-driver/tree/master/examples/kubernetes/snapshot)
-project:
+The deployment script installs the necessary components:
 
 ```bash
 kubectl kustomize https://github.com/kubernetes-csi/external-snapshotter//client/config/crd | kubectl apply -f -
@@ -134,40 +131,37 @@ kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-ebs-csi-d
 kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-ebs-csi-driver/master/examples/kubernetes/snapshot/manifests/classes/storageclass.yaml
 ```
 
-All you need to do is use the `ebs-sc` storage class in the Postgres volumes.
+Use the `ebs-sc` storage class for PostgreSQL volumes.
 
 ## Enjoy CloudNativePG
 
 You now have two separate Kubernetes clusters. The `cloudnative-pg` folder
 contains two manifest files:
 
-- `jeeg-eu-central-1.yaml`: for the initial primary
-  cluster
-- `jeeg-eu-west-1.yaml`: for the initial
-  replica cluster
+- `jeeg-eu-central-1.yaml`: Initial primary cluster
+- `jeeg-eu-west-1.yaml`: Initial replica cluster
 
-Make sure you properly set the ARN in each of them before you start.
+Ensure you set the ARN correctly in each file before starting.
 
-> **IMPORTANT:** Should you create and destroy the Postgres clusters multiple
-> times, make sure that the object stores are empty, as CloudNativePG prevents
-> you from writing WAL files on a non-empty bucket.
+> **IMPORTANT:** If you recreate and destroy the PostgreSQL clusters multiple
+> times, ensure the object stores are empty, as CloudNativePG prevents writing
+> WAL files to a non-empty bucket.
 
-### Installing the operator
+### Installing the Operator
 
-You can install the operator using the instructions you find in the
-[CloudNativePG documentation](https://cloudnative-pg.io/documentation/current/installation_upgrade/#directly-using-the-operator-manifest).
+Follow the
+[CloudNativePG documentation](https://cloudnative-pg.io/documentation/current/installation_upgrade/#directly-using-the-operator-manifest)
+to install the operator.
 
 ### Installing Prometheus and Grafana
 
-You can install Prometheus and Grafana by following the instructions provided in
-["Quickstart: Part 4 - Monitor clusters with Prometheus and Grafana"](https://cloudnative-pg.io/documentation/current/quickstart/#part-4-monitor-clusters-with-prometheus-and-grafana).
-
-Make sure that you deploy them in the node with label `workload=monitor` by
-uncommenting the `nodeSelector` stanzas in the
+Follow ["Quickstart: Part 4 - Monitor clusters with Prometheus and Grafana"](https://cloudnative-pg.io/documentation/current/quickstart/#part-4-monitor-clusters-with-prometheus-and-grafana)
+for instructions. Ensure deployment on the node with label `workload=monitor`
+by uncommenting the `nodeSelector` stanzas in the
 [kube-stack-config.yaml](https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/main/docs/src/samples/monitoring/kube-stack-config.yaml)
-file, as follows:
+file:
 
-```
+```yaml
 nodeSelector:
   workload: monitor
 prometheus:
@@ -185,96 +179,95 @@ alertmanager:
       workload: monitor
 ```
 
-The `cloudnative-pg/kubestack.yaml` file should be ready to work with your deployment.
-You can simply run:
+Then, run:
 
-```
-helm repo add prometheus-community \
-  https://prometheus-community.github.io/helm-charts
-
-helm upgrade --install -f cloudnative-pg/kubestack.yaml \
-  prometheus-community \
-  prometheus-community/kube-prometheus-stack
+```shell
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm upgrade --install -f cloudnative-pg/kubestack.yaml prometheus-community prometheus-community/kube-prometheus-stack
 ```
 
-## Accessing the S3 buckets
+## Accessing the S3 Buckets
 
-You can access the content of the buckets using the
-[`aws s3` command line interface](https://docs.aws.amazon.com/cli/latest/userguide/cli-services-s3-commands.html).
+To access the primary region bucket:
 
-To access the bucket in the primary `eu-central-1` region, type:
-
-```
-    aws s3 ls --recursive jeeg-eu-central-1
+```shell
+aws s3 ls --recursive jeeg-eu-central-1
 ```
 
-To access the bucket in the secondary `eu-west-1` region, type:
+To access the secondary region bucket:
 
-```
-    aws s3 ls --recursive jeeg-eu-west-1
+```shell
+aws s3 ls --recursive jeeg-eu-west-1
 ```
 
 ## Running pgbench
 
-You can run `pgbench` with the default OLTP-like benchmark only on a Postgres
-primary. First you need to initialize it as follows:
+Initialise `pgbench`:
 
-    kubectl cnpg pgbench \
-      --dry-run \
-      --db-name pgbench \
-      --job-name pgbench-init \
-      --node-selector workload=pgbench \
-      jeeg-eu-central-1 \
-      -- --initialize --scale '100'
-
-Then, you can run a benchmark like the very simple one here:
-
-    kubectl cnpg pgbench \
-      --dry-run \
-      --db-name pgbench \
-      --job-name pgbench-run \
-      --node-selector workload=pgbench \
-      jeeg-eu-central-1 \
-      -- --time 30 --client 1 --jobs 1
-
-## Demoting jeeg-eu-central-1
-
-You can simulate a data centre switchover by demoting the primary first. All you need to do is change:
-
-```yaml
-  replica:
-    enabled: false
+```shell
+kubectl cnpg pgbench --dry-run --db-name pgbench --job-name pgbench-init --node-selector workload=pgbench jeeg-eu-central-1 -- --initialize --scale '100'
 ```
 
-into:
+Run a simple benchmark:
 
-```yaml
-  replica:
-    enabled: true
+```shell
+kubectl cnpg pgbench --dry-run --db-name pgbench --job-name pgbench-run --node-selector workload=pgbench jeeg-eu-central-1 -- --time 30 --client 1 --jobs 1
 ```
 
-Once the operation is completed, the
-jeeg-eu-central-1 PostgreSQL cluster is set as a
-replica of `jeeg-eu-west-1` and will wait for
-new WAL files appearing in the remote object store.
+## Simulating a Data Center Switchover
 
-## Promoting jeeg-eu-west-1
+### Demoting the Primary Cluster
 
-Now that the jeeg-eu-central-1 cluster has been
-demoted, you need to make the opposite change to the
-jeeg-eu-west-1 cluster and set
-`replica.enabled`to `false`.
+To simulate a data centre switchover, demote the primary cluster by modifying
+its configuration. Change the `replica` setting from `false` to `true`:
 
-The cluster will start serving read-write operations and push WAL files in the
-buckets, which will be ultimately consumed by the
-jeeg-eu-central-1 replica cluster.
+```yaml
+replica:
+  enabled: false
+```
+
+to:
+
+```yaml
+replica:
+  enabled: true
+```
+
+This change will configure the `jeeg-eu-central-1`
+cluster to become a replica of the
+`jeeg-eu-west-1` cluster, synchronizing by
+retrieving new WAL files from the remote object store.
+
+### Promoting the Secondary Cluster
+
+After demoting the primary cluster, promote the secondary cluster by setting
+`replica.enabled` to `false`:
+
+```yaml
+replica:
+  enabled: true
+```
+
+to:
+
+```yaml
+replica:
+  enabled: false
+```
+
+This adjustment allows the `jeeg-eu-west-1`
+cluster to take over read-write operations and start pushing WAL files to the
+S3 buckets. These WAL files will then be consumed by the
+`jeeg-eu-central-1` replica cluster.
 
 ## Notes
 
-This file and the other ones in the `jeeg` folder have been automatically
-generated by [`create-eks-cluster.sh`](https://github.com/gbartolini/postgres-kubernetes-playground/blob/main/aws-eks/create-eks-cluster.sh) as follows:
+The scripts and files in the `jeeg` folder were automatically
+generated by the
+[`create-eks-cluster.sh`](https://github.com/gbartolini/postgres-kubernetes-playground/blob/main/aws-eks/create-eks-cluster.sh)
+script.
 
-This example creates an EKS cluster with prefix `jeeg` in `eu-central-1` and `eu-west-1`:
+To create an EKS cluster with the specified prefix and regions, use:
 
 ```bash
 ./create-eks-cluster.sh jeeg eu-central-1 eu-west-1
