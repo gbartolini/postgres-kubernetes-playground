@@ -318,6 +318,10 @@ ORDER BY 1,2;
 | Jonathan Battiato  | 2024-02-20 | k3s 1.28.6<br/>on 4 RPi4<br/>SSD+local-path            | 1.5            |  4GB            | 4500          |    66GB | 16      | 300  | 246    | 245    |        |        |
 | Matthew Cary       | 2024-03-15 | GKE (n2-standard-16, pd-balanced)                      | 1.5            | 14GB            | 4500          |    66GB | 16      | 300  | 1,250  | 1,485  | 1,252  | 1,343  |
 | Matthew Cary       | 2024-03-15 | GKE (n2-standard-16, pd-ssd)                           | 1.5            | 14GB            | 4500          |    66GB | 16      | 300  | -      | 1,531  | 1,495  | 1,338  |
+| Naveen Seth        | 2024-05-10 | Diamanti Postgres on UA                                | 1.5            | 14GB            | 4500          |    66GB | 4       | 300  | 3,386  | 3,213  | 3,239  | 2,869  |
+| Naveen Seth        | 2024-05-10 | Diamanti Postgres on UA                                | 1.5            | 14GB            | 4500          |    66GB | 8       | 300  | 3,207  | 2,967  | 3,035  | 2,668  |
+| Naveen Seth        | 2024-05-10 | Diamanti Postgres on UA                                | 1.5            | 14GB            | 4500          |    66GB | 16      | 300  | 2,992  | 2,921  | 2,799  | 2,490  |
+
 
 ### Database fitting entirely in memory
 
