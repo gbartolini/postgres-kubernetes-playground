@@ -49,8 +49,25 @@ spec:
       postInitSQL:
         - CREATE DATABASE pgbench OWNER app
   replica:
-    enabled: false
+    primary: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
     source: @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@
+
+  # Remove read-only and read services, then create an entry point from the Internet
+  managed:
+    services:
+      disabledDefaultServices: ["ro", "r"]
+      additional:
+      - selectorType: rw
+        serviceTemplate:
+          metadata:
+            name: "@@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@-lb"
+            # See https://docs.aws.amazon.com/eks/latest/userguide/network-load-balancing.html#load-balancer-sample-application
+            annotations:
+              service.beta.kubernetes.io/aws-load-balancer-type: external
+              service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+              service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+          spec:
+            type: LoadBalancer
 
   # PostgreSQL configuration
   postgresql:
@@ -90,7 +107,19 @@ spec:
   monitoring:
     enablePodMonitor: true
 
+  # External clusters participating in a distributed topology
   externalClusters:
+    - name: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
+      barmanObjectStore:
+        destinationPath: s3://@@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@/
+        s3Credentials:
+          inheritFromIAMRole: true
+        data:
+          compression: gzip
+          jobs: 2
+        wal:
+          compression: gzip
+          maxParallel: 2
     - name: @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@
       barmanObjectStore:
         destinationPath: s3://@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@/
