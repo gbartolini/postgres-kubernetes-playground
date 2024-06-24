@@ -321,7 +321,7 @@ ORDER BY 1,2;
 | Naveen Seth        | 2024-05-10 | Diamanti Postgres on UA                                | 1.5            | 14GB            | 4500          |    66GB | 4       | 300  | 3,386  | 3,213  | 3,239  | 2,869  |
 | Naveen Seth        | 2024-05-10 | Diamanti Postgres on UA                                | 1.5            | 14GB            | 4500          |    66GB | 8       | 300  | 3,207  | 2,967  | 3,035  | 2,668  |
 | Naveen Seth        | 2024-05-10 | Diamanti Postgres on UA                                | 1.5            | 14GB            | 4500          |    66GB | 16      | 300  | 2,992  | 2,921  | 2,799  | 2,490  |
-
+| Sagy Volkov        | 2024-02-27 | AWS <br/>Lightbits 3.7.1| 16 (r5n.8xlarge) | 10GB | 9000 | 119GB | 8      | 300  | 15,957  |  |  |  |
 
 ### Database fitting entirely in memory
 
