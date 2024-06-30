@@ -219,18 +219,21 @@ kubectl cnpg pgbench --dry-run --db-name pgbench --job-name pgbench-run --node-s
 ### Demoting the Primary Cluster
 
 To simulate a data centre switchover, demote the primary cluster by modifying
-its configuration. Change the `replica` setting from `false` to `true`:
+its configuration. Change the `primary` setting from `@@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@`
+to `@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@`
 
 ```yaml
-replica:
-  enabled: false
+  replica:
+    primary: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
+    source: @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@
 ```
 
 to:
 
 ```yaml
-replica:
-  enabled: true
+  replica:
+    primary: @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@
+    source: @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@
 ```
 
 This change will configure the `@@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@`
@@ -238,27 +241,46 @@ cluster to become a replica of the
 `@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@` cluster, synchronizing by
 retrieving new WAL files from the remote object store.
 
+Retrieve the content of the `demotionToken` as follows:
+
+```sh
+kubectl get cluster @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@ -o jsonpath='{.status.demotionToken}'
+```
+
 ### Promoting the Secondary Cluster
 
-After demoting the primary cluster, promote the secondary cluster by setting
-`replica.enabled` to `false`:
+After demoting the primary cluster, promote the secondary cluster by simultaneously:
+
+- changing the `replica.primary` field;
+- adding the `promotionToken` field, pasting the value from `demotionToken` above.
+
+You will go from:
 
 ```yaml
-replica:
-  enabled: true
+  replica:
+    primary: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
+    source: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
 ```
 
 to:
 
 ```yaml
-replica:
-  enabled: false
+  replica:
+    primary: @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@
+    source: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
+    promotionToken: # `demotionToken` from @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
 ```
 
 This adjustment allows the `@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@`
 cluster to take over read-write operations and start pushing WAL files to the
 S3 buckets. These WAL files will then be consumed by the
 `@@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@` replica cluster.
+
+## LoadBalancers
+
+This playground uses a `LoadBalancer` service to connect from outside
+Kubernetes, by taking advantage of the maanaged servies feature introduced on
+`main` and `1.24`.
 
 ## Notes
 
