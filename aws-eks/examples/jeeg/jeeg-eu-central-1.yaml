@@ -3,7 +3,7 @@ kind: ClusterConfig
 metadata:
   name: jeeg-eu-central-1
   region: eu-central-1
-  version: "1.29"
+  version: "1.30"
 
 iam:
   withOIDC: true

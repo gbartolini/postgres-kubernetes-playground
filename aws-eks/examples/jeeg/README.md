@@ -219,18 +219,21 @@ kubectl cnpg pgbench --dry-run --db-name pgbench --job-name pgbench-run --node-s
 ### Demoting the Primary Cluster
 
 To simulate a data centre switchover, demote the primary cluster by modifying
-its configuration. Change the `replica` setting from `false` to `true`:
+its configuration. Change the `primary` setting from `jeeg-eu-central-1`
+to `jeeg-eu-west-1`
 
 ```yaml
-replica:
-  enabled: false
+  replica:
+    primary: jeeg-eu-central-1
+    source: jeeg-eu-west-1
 ```
 
 to:
 
 ```yaml
-replica:
-  enabled: true
+  replica:
+    primary: jeeg-eu-west-1
+    source: jeeg-eu-west-1
 ```
 
 This change will configure the `jeeg-eu-central-1`
@@ -238,27 +241,46 @@ cluster to become a replica of the
 `jeeg-eu-west-1` cluster, synchronizing by
 retrieving new WAL files from the remote object store.
 
+Retrieve the content of the `demotionToken` as follows:
+
+```sh
+kubectl get cluster jeeg-eu-central-1 -o jsonpath='{.status.demotionToken}'
+```
+
 ### Promoting the Secondary Cluster
 
-After demoting the primary cluster, promote the secondary cluster by setting
-`replica.enabled` to `false`:
+After demoting the primary cluster, promote the secondary cluster by simultaneously:
+
+- changing the `replica.primary` field;
+- adding the `promotionToken` field, pasting the value from `demotionToken` above.
+
+You will go from:
 
 ```yaml
-replica:
-  enabled: true
+  replica:
+    primary: jeeg-eu-central-1
+    source: jeeg-eu-central-1
 ```
 
 to:
 
 ```yaml
-replica:
-  enabled: false
+  replica:
+    primary: jeeg-eu-west-1
+    source: jeeg-eu-central-1
+    promotionToken: # `demotionToken` from jeeg-eu-central-1
 ```
 
 This adjustment allows the `jeeg-eu-west-1`
 cluster to take over read-write operations and start pushing WAL files to the
 S3 buckets. These WAL files will then be consumed by the
 `jeeg-eu-central-1` replica cluster.
+
+## LoadBalancers
+
+This playground uses a `LoadBalancer` service to connect from outside
+Kubernetes, by taking advantage of the maanaged servies feature introduced on
+`main` and `1.24`.
 
 ## Notes
 

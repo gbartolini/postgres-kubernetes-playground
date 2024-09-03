@@ -7,8 +7,6 @@ spec:
 
   # One primary and two replicas (one at least synchronous)
   instances: 3
-  minSyncReplicas: 1
-  maxSyncReplicas: 1
 
   # Require different zones and different nodes with label "workload=postgres"
   topologySpreadConstraints:
@@ -49,11 +47,32 @@ spec:
       postInitSQL:
         - CREATE DATABASE pgbench OWNER app
   replica:
-    enabled: false
+    primary: jeeg-eu-central-1
     source: jeeg-eu-west-1
+
+  # Remove read-only and read services, then create an entry point from the Internet
+  managed:
+    services:
+      disabledDefaultServices: ["ro", "r"]
+#      additional:
+#      - selectorType: rw
+#        serviceTemplate:
+#          metadata:
+#            name: "jeeg-eu-central-1-lb"
+#            # See https://docs.aws.amazon.com/eks/latest/userguide/network-load-balancing.html#load-balancer-sample-application
+#            annotations:
+#              service.beta.kubernetes.io/aws-load-balancer-type: external
+#              service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+#              service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+#          spec:
+#            type: LoadBalancer
 
   # PostgreSQL configuration
   postgresql:
+    synchronous:
+      method: any
+      number: 1
+
     parameters:
       # Connections
       max_connections: '100'
@@ -86,11 +105,24 @@ spec:
       # Replication
       hot_standby_feedback: 'on'
       max_slot_wal_keep_size: '9GB'
+      synchronous_commit: 'remote_apply'
 
   monitoring:
     enablePodMonitor: true
 
+  # External clusters participating in a distributed topology
   externalClusters:
+    - name: jeeg-eu-central-1
+      barmanObjectStore:
+        destinationPath: s3://jeeg-eu-central-1/
+        s3Credentials:
+          inheritFromIAMRole: true
+        data:
+          compression: gzip
+          jobs: 2
+        wal:
+          compression: gzip
+          maxParallel: 2
     - name: jeeg-eu-west-1
       barmanObjectStore:
         destinationPath: s3://jeeg-eu-west-1/

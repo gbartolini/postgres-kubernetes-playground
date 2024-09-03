@@ -7,8 +7,6 @@ spec:
 
   # One primary and two replicas (one at least synchronous)
   instances: 3
-  minSyncReplicas: 1
-  maxSyncReplicas: 1
 
   # Require different zones and different nodes with label "workload=postgres"
   topologySpreadConstraints:
@@ -53,21 +51,25 @@ spec:
   managed:
     services:
       disabledDefaultServices: ["ro", "r"]
-      additional:
-      - selectorType: rw
-        serviceTemplate:
-          metadata:
-            name: "@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@-lb"
-            # See https://docs.aws.amazon.com/eks/latest/userguide/network-load-balancing.html#load-balancer-sample-application
-            annotations:
-              service.beta.kubernetes.io/aws-load-balancer-type: external
-              service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
-              service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
-          spec:
-            type: LoadBalancer
+#      additional:
+#      - selectorType: rw
+#        serviceTemplate:
+#          metadata:
+#            name: "@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@-lb"
+#            # See https://docs.aws.amazon.com/eks/latest/userguide/network-load-balancing.html#load-balancer-sample-application
+#            annotations:
+#              service.beta.kubernetes.io/aws-load-balancer-type: external
+#              service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+#              service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+#          spec:
+#            type: LoadBalancer
 
   # PostgreSQL configuration
   postgresql:
+    synchronous:
+      method: any
+      number: 1
+
     parameters:
       # Connections
       max_connections: '100'
@@ -100,6 +102,7 @@ spec:
       # Replication
       hot_standby_feedback: 'on'
       max_slot_wal_keep_size: '9GB'
+      synchronous_commit: 'remote_apply'
 
   monitoring:
     enablePodMonitor: true
