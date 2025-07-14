@@ -1,12 +1,56 @@
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
+spec:
+  configuration:
+    destinationPath: s3://@@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@/
+    s3Credentials:
+      inheritFromIAMRole: true
+    data:
+      compression: gzip
+      jobs: 2
+      immediateCheckpoint: true
+    wal:
+      compression: gzip
+      maxParallel: 2
+  retentionPolicy: '1m'
+---
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@
+spec:
+  configuration:
+    destinationPath: s3://@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@/
+    s3Credentials:
+      inheritFromIAMRole: true
+    data:
+      compression: gzip
+      jobs: 2
+      immediateCheckpoint: true
+    wal:
+      compression: gzip
+      maxParallel: 2
+  retentionPolicy: '1m'
+---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
   name: @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@
 spec:
-  imageName: ghcr.io/cloudnative-pg/postgresql:16
+  imageName: ghcr.io/cloudnative-pg/postgresql:17-minimal-bookworm
 
   # One primary and two replicas (one at least synchronous)
   instances: 3
+
+  # Barman Cloud
+  plugins:
+  - name: barman-cloud.cloudnative-pg.io
+    isWALArchiver: true
+    parameters:
+      barmanObjectName: @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@
+      serverName: @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@
 
   # Require different zones and different nodes with label "workload=postgres"
   topologySpreadConstraints:
@@ -18,7 +62,11 @@ spec:
         cnpg.io/cluster: @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@
   affinity:
     nodeSelector:
-      workload: postgres
+      node-role.kubernetes.io/postgres: ""
+    tolerations:
+    - key: node-role.kubernetes.io/postgres
+      operator: Exists
+      effect: NoSchedule
 
   # Request Guaranteed QoS
   resources:
@@ -44,6 +92,7 @@ spec:
     recovery:
       source: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
   replica:
+    self: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
     primary: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
     source: @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@
 
@@ -139,23 +188,9 @@ spec:
       annotations:
         eks.amazonaws.com/role-arn: # Replace this with the result of `eksctl --region @@CLUSTER_SECONDARY_REGION@@ --cluster @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@ get iamserviceaccount @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@ -o json | jq '.[0].status.roleARN'`
 
-  # Backup configuration
   backup:
     volumeSnapshot:
       className: csi-aws-vsc
-    barmanObjectStore:
-      destinationPath: s3://@@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@/
-      s3Credentials:
-        inheritFromIAMRole: true
-      data:
-        compression: gzip
-        jobs: 2
-        immediateCheckpoint: true
-      wal:
-        compression: gzip
-        maxParallel: 2
-    retentionPolicy: '7d'
-
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
@@ -167,3 +202,17 @@ spec:
   cluster:
     name: @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@
   immediate: true
+  method: plugin
+  target: primary
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: pgbench-app
+spec:
+  name: pgbench
+  owner: app
+  cluster:
+    name: @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@

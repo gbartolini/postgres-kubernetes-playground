@@ -12,6 +12,16 @@ function prepareVolumeSnapshots()
     kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-ebs-csi-driver/master/examples/kubernetes/snapshot/manifests/classes/storageclass.yaml
 }
 
+# Set node labels
+function setNodeLabelsAndTaints()
+{
+    kubectl label node -l workload=postgres node-role.kubernetes.io/postgres=
+    kubectl taint node -l workload=postgres node-role.kubernetes.io/postgres=:NoSchedule
+    kubectl label node -l workload=monitor node-role.kubernetes.io/infra=
+    kubectl label node -l workload=pgbench node-role.kubernetes.io/app=
+}
+
+
 # Create the S3 Bucket in the @@CLUSTER_PRIMARY_REGION@@ region
 aws s3api create-bucket \
   --bucket @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@ \
@@ -38,9 +48,11 @@ aws s3api put-public-access-block \
 
 # Create the EKS cluster in the @@CLUSTER_PRIMARY_REGION@@ region
 eksctl create cluster -f @@CLUSTER_PREFIX@@-@@CLUSTER_PRIMARY_REGION@@.yaml
+setNodeLabelsAndTaints
 prepareVolumeSnapshots
 
 # Create the EKS cluster in the @@CLUSTER_SECONDARY_REGION@@ region
 eksctl create cluster -f @@CLUSTER_PREFIX@@-@@CLUSTER_SECONDARY_REGION@@.yaml
+setNodeLabelsAndTaints
 prepareVolumeSnapshots
 
